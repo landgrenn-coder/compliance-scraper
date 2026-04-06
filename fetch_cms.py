@@ -23,7 +23,7 @@ CATALOG_URL = (
     "dataset/items?show-references=true&limit=500"
 )
 OUTPUT_FILE   = "cms_deficiencies.csv"
-TARGET_TAGS   = {"0880", "0881"}
+TARGET_TAGS   = {"0880", "0814"}
 CUTOFF_DATE   = date.today() - timedelta(days=90)
 THREE_YR_DATE = date.today() - timedelta(days=3 * 365)
 TIMEOUT       = 120
@@ -196,7 +196,7 @@ print("  SUMMARY")
 print("=" * 55)
 print(f"  Total rows:                  {len(result):,}")
 print(f"  Rows with fines (recent):    {(result['recent_fine_amount'] > 0).sum():,}")
-print(f"  Rows with cycle-1 data:      {(result["std_survey_deficiencies"] > 0).sum():,}")
+print(f"  Rows with cycle-1 data:      {(result['std_survey_deficiencies'] > 0).sum():,}")
 print(f"  Score distribution:")
 for s in sorted(result["prospect_score"].unique(), reverse=True):
     n = (result["prospect_score"] == s).sum()
