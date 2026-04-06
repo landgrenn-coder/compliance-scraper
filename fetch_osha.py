@@ -59,7 +59,7 @@ INSPECTION_URL = "https://apiprod.dol.gov/v4/get/OSHA/inspection/json"
 VIOLATION_URL  = "https://apiprod.dol.gov/v4/get/OSHA/violation/json"
 
 PAGE_SIZE              = 200
-PAUSE_BETWEEN_REQUESTS = 15.0   # seconds — conservative to avoid 429s
+PAUSE_BETWEEN_REQUESTS = 30.0   # seconds — 30s avoids API 429 rate limits reliably
 RETRY_BACKOFF_BASE     = 60     # seconds for first retry on 429/502/503
 MAX_RETRIES            = 5
 
