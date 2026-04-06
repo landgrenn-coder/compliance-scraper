@@ -1,6 +1,12 @@
 """
-fetch_cms.py — Downloads CMS nursing home health citation data.
-Finds the latest NH_HealthCitations CSV dynamically via the CMS data.json catalog.
+fetch_cms.py — Downloads and joins three CMS nursing home datasets.
+
+Datasets pulled:
+  1. NH_HealthCitations  — F880/F881 infection-control deficiencies
+  2. NH_Penalties        — civil monetary fines per facility
+  3. NH_SurveySummary    — most-recent-survey totals per facility
+
+Outputs cms_deficiencies.csv sorted by prospect_score descending.
 No API key required.
 """
 
@@ -11,85 +17,186 @@ from datetime import date, timedelta
 import pandas as pd
 import requests
 
-CATALOG_URL  = "https://data.cms.gov/provider-data/api/1/metastore/schemas/dataset/items?show-references=true&limit=500"
-OUTPUT_FILE  = "cms_deficiencies.csv"
-TARGET_TAGS  = {"0880", "0881"}   # stored without the "F" prefix in the CSV
-CUTOFF_DATE  = date.today() - timedelta(days=90)
-TIMEOUT      = 120  # seconds — large file
+# ── Config ────────────────────────────────────────────────────────────────────
+CATALOG_URL = (
+    "https://data.cms.gov/provider-data/api/1/metastore/schemas/"
+    "dataset/items?show-references=true&limit=500"
+)
+OUTPUT_FILE   = "cms_deficiencies.csv"
+TARGET_TAGS   = {"0880", "0881"}
+CUTOFF_DATE   = date.today() - timedelta(days=90)
+THREE_YR_DATE = date.today() - timedelta(days=3 * 365)
+TIMEOUT       = 120
+CCN           = "CMS Certification Number (CCN)"
 
 # ── Step 1: Fetch catalog ─────────────────────────────────────────────────────
 print("Step 1 — Fetching CMS provider-data catalog...")
-resp = requests.get(CATALOG_URL, timeout=TIMEOUT)
-resp.raise_for_status()
-catalog = resp.json()
-print(f"  Catalog loaded: {len(catalog)} datasets")
+catalog = requests.get(CATALOG_URL, timeout=TIMEOUT).json()
+print(f"  {len(catalog)} datasets found")
 
-# ── Step 2: Find NH_HealthCitations download URL ──────────────────────────────
-print("Step 2 — Searching for NH_HealthCitations entry...")
-download_url = None
+# ── Step 2: Find download URLs for all three files ────────────────────────────
+print("Step 2 — Locating target CSV files...")
+urls = {}
+for ds in catalog:
+    for dist in ds.get("distribution", []):
+        u = dist.get("downloadURL", "")
+        for key in ("NH_HealthCitations", "NH_Penalties", "NH_SurveySummary"):
+            if key in u and u.endswith(".csv") and key not in urls:
+                urls[key] = u
 
-for dataset in catalog:
-    for dist in dataset.get("distribution", []):
-        url = dist.get("downloadURL", "") or dist.get("accessURL", "")
-        if "NH_HealthCitations" in url and url.endswith(".csv"):
-            download_url = url
-            break
-    if download_url:
-        break
-
-if not download_url:
-    print("ERROR: NH_HealthCitations CSV not found in catalog.")
+missing = [k for k in ("NH_HealthCitations", "NH_Penalties", "NH_SurveySummary") if k not in urls]
+if missing:
+    print(f"  ERROR: could not find URLs for: {missing}")
     sys.exit(1)
 
-print(f"  Found: {download_url}")
+for k, u in urls.items():
+    print(f"  {k}: {u}")
 
-# ── Step 3: Download CSV ──────────────────────────────────────────────────────
-print("Step 3 — Downloading CSV (may be large)...")
-resp = requests.get(download_url, timeout=TIMEOUT)
-resp.raise_for_status()
-raw_text = resp.text
-total_rows = raw_text.count("\n") - 1  # rough line count before parsing
-print(f"  Downloaded {len(resp.content) / 1_048_576:.1f} MB")
+# ── Step 3: Download helper ───────────────────────────────────────────────────
+def download_csv(name, url):
+    print(f"  Downloading {name}...")
+    resp = requests.get(url, timeout=TIMEOUT)
+    resp.raise_for_status()
+    mb = len(resp.content) / 1_048_576
+    df = pd.read_csv(io.StringIO(resp.text), dtype=str, low_memory=False)
+    print(f"    {mb:.1f} MB — {len(df):,} rows")
+    df.columns = df.columns.str.strip()
+    return df
 
-# ── Step 4: Parse CSV ─────────────────────────────────────────────────────────
-print("Step 4 — Parsing CSV...")
-df = pd.read_csv(io.StringIO(raw_text), dtype=str, low_memory=False)
-print(f"  Total rows downloaded:   {len(df):,}")
+print("Step 3 — Downloading CSVs...")
+health_df  = download_csv("NH_HealthCitations", urls["NH_HealthCitations"])
+penalty_df = download_csv("NH_Penalties",        urls["NH_Penalties"])
+survey_df  = download_csv("NH_SurveySummary",    urls["NH_SurveySummary"])
 
-# Normalise column names (strip whitespace)
-df.columns = df.columns.str.strip()
+# ── Step 4: Filter health citations ──────────────────────────────────────────
+print("Step 4 — Filtering health citations...")
+health_df["Deficiency Tag Number"] = health_df["Deficiency Tag Number"].str.strip()
+health_df = health_df[health_df["Deficiency Tag Number"].isin(TARGET_TAGS)].copy()
+print(f"  After tag filter (F880/F881): {len(health_df):,}")
 
-# ── Step 5: Filter to target deficiency tags ──────────────────────────────────
-print("Step 5 — Filtering deficiency tags (F880, F881)...")
-tag_col = "Deficiency Tag Number"
-df[tag_col] = df[tag_col].str.strip()
-df_tagged = df[df[tag_col].isin(TARGET_TAGS)].copy()
-print(f"  Rows after tag filter:   {len(df_tagged):,}")
+health_df["Survey Date"] = pd.to_datetime(health_df["Survey Date"], errors="coerce")
+health_df = health_df[health_df["Survey Date"].dt.date >= CUTOFF_DATE].copy()
+print(f"  After 90-day filter:          {len(health_df):,}")
 
-# ── Step 6: Filter to last 90 days ───────────────────────────────────────────
-print(f"Step 6 — Filtering Survey Date to last 90 days (since {CUTOFF_DATE})...")
-date_col = "Survey Date"
-df_tagged[date_col] = pd.to_datetime(df_tagged[date_col], errors="coerce")
-df_recent = df_tagged[df_tagged[date_col].dt.date >= CUTOFF_DATE].copy()
-print(f"  Rows after 90-day filter:{len(df_recent):,}")
+health_df["days_since_survey"] = (date.today() - health_df["Survey Date"].dt.date).apply(lambda d: d.days)
 
-# ── Step 7: Add days_since_survey column ─────────────────────────────────────
-today = date.today()
-df_recent["days_since_survey"] = (
-    today - df_recent[date_col].dt.date
-).apply(lambda d: d.days)
+# ── Step 5: Add severity_priority ────────────────────────────────────────────
+print("Step 5 — Adding severity_priority...")
+SEVERITY_MAP = {
+    **{c: "Critical" for c in "IJKL"},
+    **{c: "Serious"  for c in "EFGH"},
+    **{c: "Minor"    for c in "ABCD"},
+}
+health_df["Scope Severity Code"] = health_df["Scope Severity Code"].str.strip()
+health_df["severity_priority"]   = health_df["Scope Severity Code"].map(SEVERITY_MAP).fillna("Unknown")
 
-# ── Step 8: Save output ───────────────────────────────────────────────────────
-print(f"Step 8 — Saving to {OUTPUT_FILE}...")
-df_recent.to_csv(OUTPUT_FILE, index=False)
+# ── Step 6: Build Penalties summary per CCN ───────────────────────────────────
+print("Step 6 — Building penalties summary...")
+penalty_df["Fine Amount"]   = pd.to_numeric(penalty_df["Fine Amount"],   errors="coerce")
+penalty_df["Penalty Date"]  = pd.to_datetime(penalty_df["Penalty Date"], errors="coerce")
+penalty_df["Penalty Type"]  = penalty_df["Penalty Type"].str.strip()
 
-# ── Step 9: Summary ───────────────────────────────────────────────────────────
+fines = penalty_df[penalty_df["Penalty Type"].str.lower() == "fine"].copy()
+
+# Most recent fine per CCN
+recent = (
+    fines.sort_values("Penalty Date", ascending=False)
+         .drop_duplicates(subset=[CCN])[[CCN, "Fine Amount", "Penalty Date"]]
+         .rename(columns={"Fine Amount": "recent_fine_amount", "Penalty Date": "fine_date"})
+)
+
+# Sum of fines in last 3 years per CCN
+fines_3yr = fines[fines["Penalty Date"].dt.date >= THREE_YR_DATE].copy()
+total_3yr  = (
+    fines_3yr.groupby(CCN)["Fine Amount"]
+              .sum()
+              .reset_index()
+              .rename(columns={"Fine Amount": "total_fines_3yr"})
+)
+
+pen_summary = recent.merge(total_3yr, on=CCN, how="outer")
+pen_summary["recent_fine_amount"] = pen_summary["recent_fine_amount"].fillna(0)
+pen_summary["total_fines_3yr"]    = pen_summary["total_fines_3yr"].fillna(0)
+pen_summary["fine_date"]          = pen_summary["fine_date"].dt.strftime("%Y-%m-%d").fillna("")
+print(f"  Facilities with fine history: {len(pen_summary):,}")
+
+# ── Step 7: Build Survey Summary (Cycle 1 only) per CCN ──────────────────────
+print("Step 7 — Building survey summary (cycle 1)...")
+survey_df["Inspection Cycle"] = survey_df["Inspection Cycle"].str.strip()
+cycle1 = survey_df[survey_df["Inspection Cycle"] == "1"][[
+    CCN,
+    "Health Survey Date",
+    "Total Number of Health Deficiencies",
+]].copy()
+
+cycle1 = cycle1.rename(columns={
+    "Health Survey Date":                  "inspection_date_cycle1",
+    "Total Number of Health Deficiencies": "total_deficiencies_cycle1",
+})
+cycle1["total_deficiencies_cycle1"] = pd.to_numeric(
+    cycle1["total_deficiencies_cycle1"], errors="coerce"
+).fillna(0)
+print(f"  Facilities with cycle-1 data: {len(cycle1):,}")
+
+# ── Step 8: Join all three datasets ──────────────────────────────────────────
+print("Step 8 — Joining datasets on CCN...")
+result = health_df.merge(pen_summary, on=CCN, how="left")
+result = result.merge(cycle1,         on=CCN, how="left")
+
+result["recent_fine_amount"]       = pd.to_numeric(result["recent_fine_amount"],       errors="coerce").fillna(0)
+result["total_fines_3yr"]          = pd.to_numeric(result["total_fines_3yr"],          errors="coerce").fillna(0)
+result["total_deficiencies_cycle1"]= pd.to_numeric(result["total_deficiencies_cycle1"],errors="coerce").fillna(0)
+result["fine_date"]                = result["fine_date"].fillna("")
+result["inspection_date_cycle1"]   = result["inspection_date_cycle1"].fillna("")
+
+# ── Step 9: Prospect score ────────────────────────────────────────────────────
+print("Step 9 — Calculating prospect_score...")
+
+def score_row(r):
+    s = 0
+    sev = str(r.get("Scope Severity Code", "")).strip().upper()
+    if sev in "EF":  s += 2
+    elif sev in "GH": s += 3
+    elif sev in "IJKL": s += 5
+
+    if float(r.get("recent_fine_amount", 0) or 0) > 0:
+        s += 3
+
+    defic = float(r.get("total_deficiencies_cycle1", 0) or 0)
+    if defic > 20:   s += 3
+    elif defic > 10: s += 2
+
+    survey_date = r.get("Survey Date")
+    if pd.notna(survey_date):
+        days = (date.today() - pd.Timestamp(survey_date).date()).days
+        if days <= 30:
+            s += 2
+    return s
+
+result["prospect_score"] = result.apply(score_row, axis=1)
+
+# ── Step 10: Format and save ──────────────────────────────────────────────────
+print("Step 10 — Saving output...")
+result["Survey Date"]   = result["Survey Date"].dt.strftime("%Y-%m-%d")
+result["Inspection Report"] = (
+    "https://www.medicare.gov/care-compare/details/nursing-home/"
+    + result[CCN].str.strip()
+)
+
+result = result.sort_values("prospect_score", ascending=False).reset_index(drop=True)
+result.to_csv(OUTPUT_FILE, index=False)
+
+# ── Summary ───────────────────────────────────────────────────────────────────
 print()
-print("=" * 50)
+print("=" * 55)
 print("  SUMMARY")
-print("=" * 50)
-print(f"  Total rows downloaded:   {len(df):,}")
-print(f"  After tag filter:        {len(df_tagged):,}")
-print(f"  After 90-day filter:     {len(df_recent):,}")
-print(f"  Saved to:                {OUTPUT_FILE}")
-print("=" * 50)
+print("=" * 55)
+print(f"  Total rows:                  {len(result):,}")
+print(f"  Rows with fines (recent):    {(result['recent_fine_amount'] > 0).sum():,}")
+print(f"  Rows with cycle-1 data:      {(result['total_deficiencies_cycle1'] > 0).sum():,}")
+print(f"  Score distribution:")
+for s in sorted(result["prospect_score"].unique(), reverse=True):
+    n = (result["prospect_score"] == s).sum()
+    print(f"    Score {s:>2}: {n:>3} facilities")
+print(f"  Saved to: {OUTPUT_FILE}")
+print("=" * 55)
