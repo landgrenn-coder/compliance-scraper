@@ -3,479 +3,327 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OSHA Healthcare Violation Prospects</title>
-
+  <title>Healthcare Compliance Prospect Dashboard</title>
   <style>
-    /* ── Reset & base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 13px;
-      background: #f4f6f9;
-      color: #1a1a2e;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; background: #f4f6f9; color: #1a1a2e; }
 
-    /* ── Page header — compact single line ── */
-    header {
-      background: #1a1a2e;
-      color: #fff;
-      padding: 12px 20px;
-      display: flex;
-      align-items: baseline;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+    header { background: #1a1a2e; color: #fff; padding: 12px 20px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
     header h1 { font-size: 17px; font-weight: 700; letter-spacing: .2px; }
     header .meta { font-size: 11px; color: #9ba4c0; }
 
-    /* ── Controls bar — single tight row ── */
-    .controls {
-      background: #fff;
-      border-bottom: 1px solid #dde2ec;
-      padding: 8px 20px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+    .tab-bar { background: #fff; border-bottom: 2px solid #dde2ec; padding: 0 20px; display: flex; gap: 4px; }
+    .tab-btn { padding: 10px 18px; border: none; background: none; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: color .15s, border-color .15s; white-space: nowrap; }
+    .tab-btn:hover { color: #1a1a2e; }
+    .tab-btn.active { color: #1a1a2e; border-bottom-color: #4a6cf7; }
+
+    .controls { background: #fff; border-bottom: 1px solid #dde2ec; padding: 8px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
     .control-group { display: flex; align-items: center; gap: 5px; }
     .controls label { font-size: 11px; font-weight: 600; color: #555; white-space: nowrap; }
-
-    /* Text search input */
-    #searchBox {
-      padding: 5px 9px;
-      border: 1px solid #ccd0da;
-      border-radius: 5px;
-      font-size: 12px;
-      width: 160px;
-      outline: none;
-      transition: border-color .2s;
-    }
-    #searchBox:focus { border-color: #4a6cf7; }
-
-    /* Dropdowns */
-    select {
-      padding: 5px 8px;
-      border: 1px solid #ccd0da;
-      border-radius: 5px;
-      font-size: 12px;
-      background: #fff;
-      cursor: pointer;
-      outline: none;
-    }
+    input[type=text] { padding: 5px 9px; border: 1px solid #ccd0da; border-radius: 5px; font-size: 12px; width: 160px; outline: none; transition: border-color .2s; }
+    input[type=text]:focus { border-color: #4a6cf7; }
+    select { padding: 5px 8px; border: 1px solid #ccd0da; border-radius: 5px; font-size: 12px; background: #fff; cursor: pointer; outline: none; }
     select:focus { border-color: #4a6cf7; }
-    #facTypeFilter { min-width: 185px; }
+    .row-count { margin-left: auto; font-size: 11px; color: #666; white-space: nowrap; }
 
-    /* Row count badge */
-    #rowCount {
-      margin-left: auto;
-      font-size: 11px;
-      color: #666;
-      white-space: nowrap;
-    }
-
-    /* ── Table wrapper — minimal padding ── */
-    .table-wrap {
-      padding: 12px 20px 28px;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08);
-    }
-
-    /* ── Table header ── */
+    .table-wrap { padding: 12px 20px 28px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     thead tr { background: #1a1a2e; color: #fff; }
-    th {
-      padding: 8px 10px;
-      text-align: left;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .3px;
-      white-space: nowrap;
-      cursor: pointer;
-      user-select: none;
-    }
+    th { padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; cursor: pointer; user-select: none; }
     th:hover { background: #2c2c4e; }
     th.sort-asc::after  { content: " ▲"; font-size: 9px; }
     th.sort-desc::after { content: " ▼"; font-size: 9px; }
-
-    /* ── Table body — tight cells ── */
-    td {
-      padding: 7px 10px;
-      border-bottom: 1px solid #eef0f5;
-      vertical-align: middle;
-      white-space: nowrap;
-      font-size: 12px;
-    }
+    td { padding: 7px 10px; border-bottom: 1px solid #eef0f5; vertical-align: middle; white-space: nowrap; font-size: 12px; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover { filter: brightness(0.96); }
 
-    /* ── Row colours by NAICS group ── */
     tr.naics-621 { background: #e8f5e9; }
-    tr.naics-622,
-    tr.naics-623 { background: #fffde7; }
+    tr.naics-622, tr.naics-623 { background: #fffde7; }
     tr.naics-624 { background: #f5f5f5; }
 
-    /* ── Facility type label ── */
+    tr.sev-critical { background: #ffebee; }
+    tr.sev-serious  { background: #fff3e0; }
+    tr.sev-minor    { background: #fffde7; }
+
     .fac-type { font-size: 11px; font-weight: 600; color: #333; white-space: nowrap; }
-
-    /* ── Numeric cells ── */
     td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.desc { white-space: normal; width: 220px; min-width: 160px; font-size: 11px; color: #444; line-height: 1.4; vertical-align: top; padding-top: 8px; }
 
-    /* ── Violation description — wraps vertically, capped width ── */
-    td.viol-desc {
-      white-space: normal;
-      width: 200px;       /* fixed width keeps table from growing wider */
-      min-width: 160px;
-      font-size: 11px;
-      color: #444;
-      line-height: 1.4;
-      vertical-align: top;
-      padding-top: 8px;
-    }
+    .chip { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; white-space: nowrap; margin-bottom: 3px; }
+    .chip.bbp      { background: #fce4ec; color: #b71c1c; }
+    .chip.hazcom   { background: #fff3e0; color: #e65100; }
+    .chip.critical { background: #ffcdd2; color: #b71c1c; }
+    .chip.serious  { background: #ffe0b2; color: #e65100; }
+    .chip.minor    { background: #fff9c4; color: #f57f17; }
 
-    /* ── Coloured chip tag ── */
-    .viol-tag {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .3px;
-      text-transform: uppercase;
-      white-space: nowrap;
-      margin-bottom: 3px;
-    }
-    .viol-tag.bbp    { background: #fce4ec; color: #b71c1c; }
-    .viol-tag.hazcom { background: #fff3e0; color: #e65100; }
-
-    /* ── Empty state ── */
-    #emptyMsg {
-      display: none;
-      text-align: center;
-      padding: 36px;
-      color: #888;
-      font-size: 14px;
-    }
-
-    /* ── Legend — inline with controls, very compact ── */
-    .legend {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      padding: 5px 20px 8px;
-      font-size: 11px;
-      color: #555;
-    }
+    .legend { display: flex; gap: 12px; align-items: center; padding: 5px 20px 8px; font-size: 11px; color: #555; flex-wrap: wrap; }
     .legend-item { display: flex; align-items: center; gap: 5px; }
-    .legend-swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
-    .sw1 { background: #e8f5e9; border: 1px solid #a5d6a7; }
-    .sw2 { background: #fffde7; border: 1px solid #ffe082; }
-    .sw3 { background: #f5f5f5; border: 1px solid #ccc; }
+    .swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+    .empty-msg { display: none; text-align: center; padding: 36px; color: #888; font-size: 14px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
   </style>
 </head>
 <body>
 
-<!-- ── Page header ── -->
 <header>
-  <h1>OSHA Healthcare Violation Prospects</h1>
-  <span class="meta">Data last updated: 2026-03-02 &nbsp;·&nbsp; 14 facilities &nbsp;·&nbsp; 90-day citation window</span>
+  <h1>Healthcare Compliance Prospect Dashboard</h1>
+  <span class="meta">Data last updated: 2026-04-06 &nbsp;·&nbsp; 90-day window</span>
 </header>
 
-<!-- ── Filter / search controls ── -->
-<div class="controls">
-  <div class="control-group">
-    <label for="searchBox">🔍</label>
-    <input type="text" id="searchBox" placeholder="Search facility or city…" />
-  </div>
-
-  <div class="control-group">
-    <label for="facTypeFilter">Facility Type</label>
-    <!-- Options are built dynamically from NAICS_LABELS in JS -->
-    <select id="facTypeFilter">
-      <option value="">All Facility Types</option>
-    </select>
-  </div>
-
-  <div class="control-group">
-    <label for="stateFilter">State</label>
-    <select id="stateFilter">
-      <option value="">All States</option>
-    </select>
-  </div>
-
-  <span id="rowCount"></span>
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-osha" onclick="switchTab('osha')">OSHA Violations (14)</button>
+  <button class="tab-btn"        id="tab-cms"  onclick="switchTab('cms')">CMS Deficiencies (300)</button>
 </div>
 
-<!-- ── Color legend ── -->
-<div class="legend">
-  <span style="font-weight:600; color:#333;">Row color:</span>
-  <span class="legend-item"><span class="legend-swatch sw1"></span> Ambulatory / Clinical (NAICS 621x)</span>
-  <span class="legend-item"><span class="legend-swatch sw2"></span> Inpatient / Residential (NAICS 622x–623x)</span>
-  <span class="legend-item"><span class="legend-swatch sw3"></span> Social Services (NAICS 624x)</span>
+<!-- ══ OSHA PANEL ══ -->
+<div class="panel active" id="panel-osha">
+  <div class="controls">
+    <div class="control-group"><label>🔍</label><input type="text" id="oshaSearch" placeholder="Search facility or city…" oninput="renderOsha()" /></div>
+    <div class="control-group"><label for="oshaFacType">Facility Type</label><select id="oshaFacType" onchange="renderOsha()"><option value="">All Facility Types</option></select></div>
+    <div class="control-group"><label for="oshaState">State</label><select id="oshaState" onchange="renderOsha()"><option value="">All States</option></select></div>
+    <span class="row-count" id="oshaCount"></span>
+  </div>
+  <div class="legend">
+    <span style="font-weight:600;color:#333;">Row color:</span>
+    <span class="legend-item"><span class="swatch" style="background:#e8f5e9;border:1px solid #a5d6a7"></span> Ambulatory / Clinical (621x)</span>
+    <span class="legend-item"><span class="swatch" style="background:#fffde7;border:1px solid #ffe082"></span> Inpatient / Residential (622x–623x)</span>
+    <span class="legend-item"><span class="swatch" style="background:#f5f5f5;border:1px solid #ccc"></span> Social Services (624x)</span>
+  </div>
+  <div class="table-wrap">
+    <table id="oshaTable">
+      <thead><tr>
+        <th data-tab="osha" data-col="fac_type">Facility Type</th>
+        <th data-tab="osha" data-col="estab_name">Facility</th>
+        <th data-tab="osha" data-col="site_city">City</th>
+        <th data-tab="osha" data-col="site_state">ST</th>
+        <th data-tab="osha" data-col="standard">CFR Standard</th>
+        <th data-tab="osha" data-col="viol_desc">Violation Type</th>
+        <th data-tab="osha" data-col="issuance_date">Cited</th>
+        <th data-tab="osha" data-col="days_since_citation">Days Ago</th>
+        <th data-tab="osha" data-col="current_penalty">Penalty</th>
+        <th data-tab="osha" data-col="total_violations">Citations</th>
+      </tr></thead>
+      <tbody id="oshaBody"></tbody>
+    </table>
+    <p class="empty-msg" id="oshaEmpty">No matching records found.</p>
+  </div>
 </div>
 
-<!-- ── Data table ── -->
-<div class="table-wrap">
-  <table id="prospectsTable">
-    <thead>
-      <tr>
-        <th data-col="fac_type">Facility Type</th>
-        <th data-col="estab_name">Facility</th>
-        <th data-col="site_city">City</th>
-        <th data-col="site_state">ST</th>
-        <th data-col="standard">CFR Standard</th>
-        <th data-col="viol_desc">Violation Type</th>
-        <th data-col="issuance_date">Cited</th>
-        <th data-col="days_since_citation">Days Ago</th>
-        <th data-col="current_penalty">Penalty</th>
-        <th data-col="total_violations">Citations</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-  <p id="emptyMsg">No matching records found.</p>
+<!-- ══ CMS PANEL ══ -->
+<div class="panel" id="panel-cms">
+  <div class="controls">
+    <div class="control-group"><label>🔍</label><input type="text" id="cmsSearch" placeholder="Search facility or city…" oninput="renderCms()" /></div>
+    <div class="control-group"><label for="cmsSeverity">Severity</label>
+      <select id="cmsSeverity" onchange="renderCms()">
+        <option value="">All Severities</option>
+        <option value="Critical">Critical</option>
+        <option value="Serious">Serious</option>
+        <option value="Minor">Minor</option>
+      </select>
+    </div>
+    <div class="control-group"><label for="cmsState">State</label><select id="cmsState" onchange="renderCms()"><option value="">All States</option></select></div>
+    <span class="row-count" id="cmsCount"></span>
+  </div>
+  <div class="legend">
+    <span style="font-weight:600;color:#333;">Row color:</span>
+    <span class="legend-item"><span class="swatch" style="background:#ffebee;border:1px solid #ef9a9a"></span> Critical (I–L, Immediate Jeopardy)</span>
+    <span class="legend-item"><span class="swatch" style="background:#fff3e0;border:1px solid #ffcc80"></span> Serious (E–H, Actual Harm / Widespread)</span>
+    <span class="legend-item"><span class="swatch" style="background:#fffde7;border:1px solid #ffe082"></span> Minor (A–D, No Actual Harm)</span>
+  </div>
+  <div class="table-wrap">
+    <table id="cmsTable">
+      <thead><tr>
+        <th data-tab="cms" data-col="Provider Name">Provider Name</th>
+        <th data-tab="cms" data-col="City/Town">City</th>
+        <th data-tab="cms" data-col="State">ST</th>
+        <th data-tab="cms" data-col="Deficiency Tag Number">Tag</th>
+        <th data-tab="cms" data-col="Deficiency Description">Deficiency Description</th>
+        <th data-tab="cms" data-col="Survey Date">Survey Date</th>
+        <th data-tab="cms" data-col="days_since_survey">Days Ago</th>
+        <th data-tab="cms" data-col="severity_priority">Severity</th>
+      </tr></thead>
+      <tbody id="cmsBody"></tbody>
+    </table>
+    <p class="empty-msg" id="cmsEmpty">No matching records found.</p>
+  </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// DATA — embedded directly so the page works from a file:// URL with no server.
-// Generated from healthcare_violations_final.csv on 2026-04-03.
-// ─────────────────────────────────────────────────────────────────────────────
-const RAW_DATA = [
-  {"priority_tier":"1","estab_name":"WADE CLAYTON DDS, PLLC","site_address":"2705 APPLING ROAD SUITE 101","site_city":"MEMPHIS","site_state":"TN","naics_code":"621210","standard":"19101030 C01 IV B","issuance_date":"2026-02-24","days_since_citation":"38","current_penalty":"940.0","total_violations":"9"},
-  {"priority_tier":"1","estab_name":"JOSHUA T MYERS DDS PC","site_address":"299 NE MAIN ST","site_city":"WINSTON","site_state":"OR","naics_code":"621210","standard":"19101030 C02 I","issuance_date":"2026-02-23","days_since_citation":"39","current_penalty":"1177.0","total_violations":"2"},
-  {"priority_tier":"1","estab_name":"CHEATHAM COUNTY EMERGENCY MEDICAL SERVICES","site_address":"3455 BELL STREET","site_city":"ASHLAND CITY","site_state":"TN","naics_code":"621910","standard":"19101200 E01","issuance_date":"2026-02-23","days_since_citation":"39","current_penalty":"0.0","total_violations":"2"},
-  {"priority_tier":"1","estab_name":"JOHN R. FOGAROS, D.D.S., P.C.","site_address":"4085 MALLORY LANE SUITE 116","site_city":"FRANKLIN","site_state":"TN","naics_code":"621210","standard":"19101030 D02 VIII B","issuance_date":"2026-02-20","days_since_citation":"42","current_penalty":"350.0","total_violations":"6"},
-  {"priority_tier":"1","estab_name":"MIAMI VALLEY HOSPITAL","site_address":"9000 NORTH MAIN STREET","site_city":"DAYTON","site_state":"OH","naics_code":"621910","standard":"19101030 H05 I C","issuance_date":"2026-02-18","days_since_citation":"44","current_penalty":"0.0","total_violations":"2"},
-  {"priority_tier":"1","estab_name":"HATO TEJAS X RAYS LLC","site_address":"CARR. 862 KM 2.7 63B HATO TEJAS","site_city":"BAYAMON","site_state":"PR","naics_code":"621512","standard":"19101030 G02 I","issuance_date":"2026-02-17","days_since_citation":"45","current_penalty":"850.0","total_violations":"1"},
-  {"priority_tier":"1","estab_name":"KANKAKEE VALLEY ORAL AND MAXILLOFACIAL SURGERY","site_address":"31 BRIARCLIFF PROFESSIONAL CENTER","site_city":"BOURBONNAIS","site_state":"IL","naics_code":"621210","standard":"19101030 F02 IV","issuance_date":"2026-02-17","days_since_citation":"45","current_penalty":"0.0","total_violations":"1"},
-  {"priority_tier":"2","estab_name":"SOUTHVIEW OPERATIONS LLC","site_address":"2000 OAKDALE AVE","site_city":"SAINT PAUL","site_state":"MN","naics_code":"623110","standard":"19101030 H05 I","issuance_date":"2026-02-24","days_since_citation":"38","current_penalty":"2100.0","total_violations":"1"},
-  {"priority_tier":"2","estab_name":"LENITY MANAGEMENT OR LLC","site_address":"93975 OCEAN WAY","site_city":"GOLD BEACH","site_state":"OR","naics_code":"623312","standard":"19101200 E01 I","issuance_date":"2026-02-23","days_since_citation":"39","current_penalty":"0.0","total_violations":"1"},
-  {"priority_tier":"2","estab_name":"INSPIRED SENIOR LIVING OF LAS VEGAS MT, LLC","site_address":"2320 IONE ROAD","site_city":"LAS VEGAS","site_state":"NV","naics_code":"623312","standard":"19101200 H01","issuance_date":"2026-02-19","days_since_citation":"43","current_penalty":"4966.0","total_violations":"1"},
-  {"priority_tier":"2","estab_name":"ELIM HOMES INC DBA ELIM WELLSPRING ASSISTED LIVING","site_address":"104 8TH AVE S","site_city":"PRINCETON","site_state":"MN","naics_code":"623110","standard":"19101030 F02 I","issuance_date":"2026-02-17","days_since_citation":"45","current_penalty":"7200.0","total_violations":"4"},
-  {"priority_tier":"3","estab_name":"D.A. TURNER BRANCH YMCA","site_address":"4384 WARM SPRINGS ROAD","site_city":"COLUMBUS","site_state":"GA","naics_code":"624110","standard":"19101200 G01","issuance_date":"2026-03-02","days_since_citation":"32","current_penalty":"0.0","total_violations":"3"},
-  {"priority_tier":"3","estab_name":"TOWN OF MADISON (Before/After School Program)","site_address":"980 DURHAM ROAD","site_city":"MADISON","site_state":"CT","naics_code":"624110","standard":"19101030 C01 I","issuance_date":"2026-02-27","days_since_citation":"35","current_penalty":"280.0","total_violations":"3"},
-  {"priority_tier":"3","estab_name":"TOWN OF MADISON (Senior Center)","site_address":"29 BRADLEY ROAD","site_city":"MADISON","site_state":"CT","naics_code":"624120","standard":"19101200 E01","issuance_date":"2026-02-27","days_since_citation":"35","current_penalty":"240.0","total_violations":"3"}
-];
+// ── Data ──────────────────────────────────────────────────────────────────────
+const RAW_DATA = [{"priority_tier": "1", "estab_name": "WADE CLAYTON DDS, PLLC", "site_address": "2705 APPLING ROAD SUITE 101", "site_city": "MEMPHIS", "site_state": "TN", "naics_code": "621210", "standard": "19101030 C01 IV B", "issuance_date": "2026-02-24", "days_since_citation": "38", "current_penalty": "940.0", "total_violations": "9"}, {"priority_tier": "1", "estab_name": "JOSHUA T MYERS DDS PC", "site_address": "299 NE MAIN ST", "site_city": "WINSTON", "site_state": "OR", "naics_code": "621210", "standard": "19101030 C02 I", "issuance_date": "2026-02-23", "days_since_citation": "39", "current_penalty": "1177.0", "total_violations": "2"}, {"priority_tier": "1", "estab_name": "CHEATHAM COUNTY EMERGENCY MEDICAL SERVICES", "site_address": "3455 BELL STREET", "site_city": "ASHLAND CITY", "site_state": "TN", "naics_code": "621910", "standard": "19101200 E01", "issuance_date": "2026-02-23", "days_since_citation": "39", "current_penalty": "0.0", "total_violations": "2"}, {"priority_tier": "1", "estab_name": "JOHN R. FOGAROS, D.D.S., P.C.", "site_address": "4085 MALLORY LANE SUITE 116", "site_city": "FRANKLIN", "site_state": "TN", "naics_code": "621210", "standard": "19101030 D02 VIII B", "issuance_date": "2026-02-20", "days_since_citation": "42", "current_penalty": "350.0", "total_violations": "6"}, {"priority_tier": "1", "estab_name": "MIAMI VALLEY HOSPITAL", "site_address": "9000 NORTH MAIN STREET", "site_city": "DAYTON", "site_state": "OH", "naics_code": "621910", "standard": "19101030 H05 I C", "issuance_date": "2026-02-18", "days_since_citation": "44", "current_penalty": "0.0", "total_violations": "2"}, {"priority_tier": "1", "estab_name": "HATO TEJAS X RAYS LLC", "site_address": "CARR. 862 KM 2.7 63B HATO TEJAS", "site_city": "BAYAMON", "site_state": "PR", "naics_code": "621512", "standard": "19101030 G02 I", "issuance_date": "2026-02-17", "days_since_citation": "45", "current_penalty": "850.0", "total_violations": "1"}, {"priority_tier": "1", "estab_name": "KANKAKEE VALLEY ORAL AND MAXILLOFACIAL SURGERY", "site_address": "31 BRIARCLIFF PROFESSIONAL CENTER", "site_city": "BOURBONNAIS", "site_state": "IL", "naics_code": "621210", "standard": "19101030 F02 IV", "issuance_date": "2026-02-17", "days_since_citation": "45", "current_penalty": "0.0", "total_violations": "1"}, {"priority_tier": "2", "estab_name": "SOUTHVIEW OPERATIONS LLC", "site_address": "2000 OAKDALE AVE", "site_city": "SAINT PAUL", "site_state": "MN", "naics_code": "623110", "standard": "19101030 H05 I", "issuance_date": "2026-02-24", "days_since_citation": "38", "current_penalty": "2100.0", "total_violations": "1"}, {"priority_tier": "2", "estab_name": "LENITY MANAGEMENT OR LLC", "site_address": "93975 OCEAN WAY", "site_city": "GOLD BEACH", "site_state": "OR", "naics_code": "623312", "standard": "19101200 E01 I", "issuance_date": "2026-02-23", "days_since_citation": "39", "current_penalty": "0.0", "total_violations": "1"}, {"priority_tier": "2", "estab_name": "INSPIRED SENIOR LIVING OF LAS VEGAS MT, LLC", "site_address": "2320 IONE ROAD", "site_city": "LAS VEGAS", "site_state": "NV", "naics_code": "623312", "standard": "19101200 H01", "issuance_date": "2026-02-19", "days_since_citation": "43", "current_penalty": "4966.0", "total_violations": "1"}, {"priority_tier": "2", "estab_name": "ELIM HOMES INC DBA ELIM WELLSPRING ASSISTED LIVING", "site_address": "104 8TH AVE S", "site_city": "PRINCETON", "site_state": "MN", "naics_code": "623110", "standard": "19101030 F02 I", "issuance_date": "2026-02-17", "days_since_citation": "45", "current_penalty": "7200.0", "total_violations": "4"}, {"priority_tier": "3", "estab_name": "D.A. TURNER BRANCH YMCA", "site_address": "4384 WARM SPRINGS ROAD", "site_city": "COLUMBUS", "site_state": "GA", "naics_code": "624110", "standard": "19101200 G01", "issuance_date": "2026-03-02", "days_since_citation": "32", "current_penalty": "0.0", "total_violations": "3"}, {"priority_tier": "3", "estab_name": "TOWN OF MADISON (Before/After School Program)", "site_address": "980 DURHAM ROAD", "site_city": "MADISON", "site_state": "CT", "naics_code": "624110", "standard": "19101030 C01 I", "issuance_date": "2026-02-27", "days_since_citation": "35", "current_penalty": "280.0", "total_violations": "3"}, {"priority_tier": "3", "estab_name": "TOWN OF MADISON (Senior Center)", "site_address": "29 BRADLEY ROAD", "site_city": "MADISON", "site_state": "CT", "naics_code": "624120", "standard": "19101200 E01", "issuance_date": "2026-02-27", "days_since_citation": "35", "current_penalty": "240.0", "total_violations": "3"}];
+const CMS_DATA = [{"Provider Name": "DENALI CENTER", "City/Town": "FAIRBANKS", "State": "AK", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "76", "severity_priority": "Serious"}, {"Provider Name": "FAIRFIELD POST-ACUTE REHAB", "City/Town": "FAIRFIELD", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "CALIFORNIA POST-ACUTE CARE", "City/Town": "LYNWOOD", "State": "CA", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "90", "severity_priority": "Serious"}, {"Provider Name": "BERKLEY WEST HEALTHCARE CENTER", "City/Town": "SANTA MONICA", "State": "CA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "VERNON HEALTHCARE CENTER", "City/Town": "LOS ANGELES", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "RIALTO POST ACUTE CENTER", "City/Town": "RIALTO", "State": "CA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "WATSONVILLE NURSING CENTER", "City/Town": "WATSONVILLE", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "ORANGE HEALTHCARE & WELLNESS CENTRE, LLC", "City/Town": "ORANGE", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "WOODCREST POST ACUTE & REHABILITATION", "City/Town": "RIVERSIDE", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "ARTESIA CHRISTIAN HOME INC.", "City/Town": "ARTESIA", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "73", "severity_priority": "Serious"}, {"Provider Name": "SEQUOIA TRANSITIONAL CARE", "City/Town": "PORTERVILLE", "State": "CA", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "BAY CREST CARE CENTER", "City/Town": "TORRANCE", "State": "CA", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "66", "severity_priority": "Serious"}, {"Provider Name": "FEATHER RIVER CARE CENTER", "City/Town": "OROVILLE", "State": "CA", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "Valle Verde Health Facility", "City/Town": "Santa Barbara", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "CHAPMAN CARE CENTER", "City/Town": "GARDEN GROVE", "State": "CA", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "75", "severity_priority": "Serious"}, {"Provider Name": "BROADWAY BY THE SEA", "City/Town": "LONG BEACH", "State": "CA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "MIRAGE POST ACUTE", "City/Town": "LANCASTER", "State": "CA", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "66", "severity_priority": "Minor"}, {"Provider Name": "GRIFFITH PARK HEALTHCARE CENTER", "City/Town": "GLENDALE", "State": "CA", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "ALEXANDRIA CARE CENTER", "City/Town": "LOS ANGELES", "State": "CA", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "BURBANK HEALTHCARE & REHAB", "City/Town": "BURBANK", "State": "CA", "Survey Date": "2026-01-31", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "J", "days_since_survey": "65", "severity_priority": "Critical"}, {"Provider Name": "BURBANK HEALTHCARE & REHAB", "City/Town": "BURBANK", "State": "CA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "MENIFEE LAKES POST ACUTE", "City/Town": "SUN CITY", "State": "CA", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "TAMPICO HEALTHCARE CENTER", "City/Town": "WALNUT CREEK", "State": "CA", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "BELL CONVALESCENT HOSPITAL", "City/Town": "BELL", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "MOUNTAIN VIEW CONV HOSP", "City/Town": "SYLMAR", "State": "CA", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "D", "days_since_survey": "90", "severity_priority": "Minor"}, {"Provider Name": "Atterdag Care Center", "City/Town": "Solvang", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "Yucaipa Hills Post Acute", "City/Town": "Yucaipa", "State": "CA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "ARLINGTON GARDENS CARE CENTER", "City/Town": "RIVERSIDE", "State": "CA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "THE LODGE AT RED ROCKS", "City/Town": "MORRISON", "State": "CO", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "SIERRA POST ACUTE", "City/Town": "LAKEWOOD", "State": "CO", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "RIVERDALE POST ACUTE", "City/Town": "BRIGHTON", "State": "CO", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "BRUCE MCCANDLESS CO STATE VETERANS NURSING HOME", "City/Town": "FLORENCE", "State": "CO", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "REHABILITATION CENTER OF ORLANDO", "City/Town": "ORLANDO", "State": "FL", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "Vivo Healthcare Gandy", "City/Town": "TAMPA", "State": "FL", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "66", "severity_priority": "Serious"}, {"Provider Name": "CENTRE POINTE HEALTH AND REHAB CENTER", "City/Town": "TALLAHASSEE", "State": "FL", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "RULEME CENTER", "City/Town": "EUSTIS", "State": "FL", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "LIFE CARE CENTER OF CITRUS COUNTY", "City/Town": "LECANTO", "State": "FL", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "53", "severity_priority": "Minor"}, {"Provider Name": "CORAL BAY AT PENSACOLA, LLC", "City/Town": "PENSACOLA", "State": "FL", "Survey Date": "2026-01-19", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "77", "severity_priority": "Serious"}, {"Provider Name": "FREEDOM POINTE HEALTH CENTER", "City/Town": "THE VILLAGES", "State": "FL", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "MAGNOLIA MANOR METHODIST NSG C", "City/Town": "AMERICUS", "State": "GA", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "ARCHBOLD LIVING CAMILLA", "City/Town": "CAMILLA", "State": "GA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "COTTAGES AT ROCKMART, THE", "City/Town": "ROCKMART", "State": "GA", "Survey Date": "2026-01-11", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "85", "severity_priority": "Minor"}, {"Provider Name": "CROSSINGS AT EAST LAKE OF JOURNEY LLC, THE", "City/Town": "DECATUR", "State": "GA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "MEADOWBROOK HEALTH AND REHAB", "City/Town": "TUCKER", "State": "GA", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "66", "severity_priority": "Serious"}, {"Provider Name": "PALEMON GASKINS MEM NSG HOME", "City/Town": "OCILLA", "State": "GA", "Survey Date": "2026-01-18", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "78", "severity_priority": "Minor"}, {"Provider Name": "SILVERTON HEALTH AND REHABILITATION OF CASCADIA", "City/Town": "SILVERTON", "State": "ID", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "SUNNY RIDGE", "City/Town": "NAMPA", "State": "ID", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "TEMPLE VIEW TRANSITIONAL CARE CENTER", "City/Town": "REXBURG", "State": "ID", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "MADISON CARRIAGE COVE SHORT STAY REHABILITATION", "City/Town": "REXBURG", "State": "ID", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "68", "severity_priority": "Serious"}, {"Provider Name": "Oakwood Rehab and Nursing Center", "City/Town": "WESTMONT", "State": "IL", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "73", "severity_priority": "Serious"}, {"Provider Name": "GROVE OF ELMHURST, THE", "City/Town": "ELMHURST", "State": "IL", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "ELEVATE CARE SOUTH HOLLAND", "City/Town": "SOUTH HOLLAND", "State": "IL", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "WHITEHALL OF DEERFIELD", "City/Town": "DEERFIELD", "State": "IL", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "76", "severity_priority": "Serious"}, {"Provider Name": "FOREST VIEW REHAB & NURSING CENTER", "City/Town": "ITASCA", "State": "IL", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "80", "severity_priority": "Minor"}, {"Provider Name": "SOUTHPOINT NURSING & REHAB CENTER", "City/Town": "CHICAGO", "State": "IL", "Survey Date": "2026-01-26", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "70", "severity_priority": "Minor"}, {"Provider Name": "ARCHER HEIGHTS HEALTHCARE", "City/Town": "CHICAGO", "State": "IL", "Survey Date": "2026-01-18", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "78", "severity_priority": "Minor"}, {"Provider Name": "GOLDWATER CARE CLINTON", "City/Town": "CLINTON", "State": "IL", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "RESTHAVE HOME-WHITESIDE COUNTY", "City/Town": "MORRISON", "State": "IL", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "GREEN VALLEY CARE CENTER", "City/Town": "NEW ALBANY", "State": "IN", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "BRICKYARD HEALTHCARE - BROOKVIEW CARE CENTER", "City/Town": "INDIANAPOLIS", "State": "IN", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "HARCOURT TERRACE NURSING AND REHABILITATION", "City/Town": "INDIANAPOLIS", "State": "IN", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "LIFE CARE CENTER OF THE WILLOWS", "City/Town": "VALPARAISO", "State": "IN", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "69", "severity_priority": "Minor"}, {"Provider Name": "LIFE CARE CENTER OF THE WILLOWS", "City/Town": "VALPARAISO", "State": "IN", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "D", "days_since_survey": "69", "severity_priority": "Minor"}, {"Provider Name": "MILLER'S MERRY MANOR", "City/Town": "MARION", "State": "IN", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "90", "severity_priority": "Minor"}, {"Provider Name": "WESTMINSTER VILLAGE KENTUCKIANA", "City/Town": "CLARKSVILLE", "State": "IN", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "76", "severity_priority": "Serious"}, {"Provider Name": "WATERS OF PRINCETON, THE", "City/Town": "PRINCETON", "State": "IN", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "80", "severity_priority": "Minor"}, {"Provider Name": "SERENITY SPRING SENIOR LIVING AT JASONVILLE", "City/Town": "JASONVILLE", "State": "IN", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "LIFE CARE CENTER OF VALPARAISO", "City/Town": "VALPARAISO", "State": "IN", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "90", "severity_priority": "Minor"}, {"Provider Name": "PAOLI HEALTH AND LIVING COMMUNITY", "City/Town": "PAOLI", "State": "IN", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "POPLAR CARE STRATEGIES", "City/Town": "LOOGOOTEE", "State": "IN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "CARDINAL CARE STRATEGIES", "City/Town": "MUNCIE", "State": "IN", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "HICKORY CREEK AT CRAWFORDSVILLE", "City/Town": "CRAWFORDSVILLE", "State": "IN", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "WESLEYAN HEALTH CARE CENTER", "City/Town": "MARION", "State": "IN", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "69", "severity_priority": "Minor"}, {"Provider Name": "PARKER HEALTH CARE & REHABILITATION CENTER", "City/Town": "PARKER CITY", "State": "IN", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "TRANSCENDENT HEALTHCARE OF OWENSVILLE", "City/Town": "OWENSVILLE", "State": "IN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "HUTSONWOOD AT BRAZIL", "City/Town": "BRAZIL", "State": "IN", "Survey Date": "2026-01-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "84", "severity_priority": "Minor"}, {"Provider Name": "ENVIVE OF RIVER CITY", "City/Town": "EVANSVILLE", "State": "IN", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "ENVIVE OF MUNCIE", "City/Town": "MUNCIE", "State": "IN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "RIVER BEND NURSING AND REHABILITATION", "City/Town": "EVANSVILLE", "State": "IN", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "66", "severity_priority": "Minor"}, {"Provider Name": "WATERFORD PLACE HEALTH CAMPUS", "City/Town": "KOKOMO", "State": "IN", "Survey Date": "2026-02-02", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "63", "severity_priority": "Minor"}, {"Provider Name": "SOUTHFIELD VILLAGE", "City/Town": "SOUTH BEND", "State": "IN", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "ST ANDREWS HEALTH CAMPUS", "City/Town": "BATESVILLE", "State": "IN", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "AVALON SPRINGS HEALTH CAMPUS", "City/Town": "VALPARAISO", "State": "IN", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "WELLBROOKE OF WABASH", "City/Town": "WABASH", "State": "IN", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "WELLBROOKE OF CARMEL", "City/Town": "CARMEL", "State": "IN", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "75", "severity_priority": "Minor"}, {"Provider Name": "Harmony Dubuque", "City/Town": "Dubuque", "State": "IA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "Community Memorial Health Center", "City/Town": "Hartley", "State": "IA", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "Accura Healthcare of Cherokee, LLC", "City/Town": "Cherokee", "State": "IA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "Winslow House Care Center", "City/Town": "Marion", "State": "IA", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "Sunny View Care Center", "City/Town": "Ankeny", "State": "IA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "Perry Lutheran Home", "City/Town": "Perry", "State": "IA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "Southeast Iowa Healthcare Center", "City/Town": "Keokuk", "State": "IA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "DIVERSICARE OF LARNED", "City/Town": "LARNED", "State": "KS", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "Medicalodges Goddard", "City/Town": "GODDARD", "State": "KS", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "ANEW HEALTHCARE", "City/Town": "NORTONVILLE", "State": "KS", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "L", "days_since_survey": "82", "severity_priority": "Critical"}, {"Provider Name": "THE GARDENS AT ALDERSGATE", "City/Town": "TOPEKA", "State": "KS", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "HILLTOP LODGE HEALTH AND REHABILITATION CENTER", "City/Town": "BELOIT", "State": "KS", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "ANEW HEALTHCARE EASTON", "City/Town": "EASTON", "State": "KS", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "WHEAT STATE MANOR", "City/Town": "WHITEWATER", "State": "KS", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "F", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "WHEAT STATE MANOR", "City/Town": "WHITEWATER", "State": "KS", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "HILLSIDE VILLAGE OF DE SOTO REHABILITATION AND NUR", "City/Town": "DE SOTO", "State": "KS", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "CENTER AT WATERFRONT LLC", "City/Town": "WICHITA", "State": "KS", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "Natchitoches Nursing and Rehabilitation Center, LL", "City/Town": "NATCHITOCHES", "State": "LA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "Roseview Nursing and Rehabilitation Center", "City/Town": "Shreveport", "State": "LA", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "ST JUDE'S HEALTH & WELLNESS CENTER", "City/Town": "NEW ORLEANS", "State": "LA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "Alpine Skilled Nursing and Rehabilitation", "City/Town": "RUSTON", "State": "LA", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "BAYOU CHATEAU NURSING CTR", "City/Town": "SIMMESPORT", "State": "LA", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "HAMMOND NURSING HOME", "City/Town": "HAMMOND", "State": "LA", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "COMPLETE CARE AT HYATTSVILLE", "City/Town": "HYATTSVILLE", "State": "MD", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "WALDORF  CENTER", "City/Town": "WALDORF", "State": "MD", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "73", "severity_priority": "Serious"}, {"Provider Name": "CARE ONE AT WEYMOUTH", "City/Town": "WEYMOUTH", "State": "MA", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "Regency at Jackson", "City/Town": "Jackson", "State": "MI", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "Majestic Care of Battle Creek", "City/Town": "Battle Creek", "State": "MI", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "80", "severity_priority": "Minor"}, {"Provider Name": "Optalis Health & Rehabilitation of Bloomfield Hill", "City/Town": "Bloomfield Hills", "State": "MI", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "Optalis Health & Rehabilitation of Bloomfield Hill", "City/Town": "Bloomfield Hills", "State": "MI", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "Optalis Health and Rehabilitation at St. Francis", "City/Town": "Saginaw", "State": "MI", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "75", "severity_priority": "Minor"}, {"Provider Name": "Medilodge of Farmington", "City/Town": "Farmington", "State": "MI", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "68", "severity_priority": "Serious"}, {"Provider Name": "The Laurels of Bedford", "City/Town": "Battle Creek", "State": "MI", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "68", "severity_priority": "Serious"}, {"Provider Name": "Medilodge of Livingston", "City/Town": "Howell", "State": "MI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "Medilodge of Munising", "City/Town": "Munising", "State": "MI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "The Oaks at Belmont", "City/Town": "Belmont", "State": "MI", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "ST ANTHONY PARK HOME INC", "City/Town": "SAINT PAUL", "State": "MN", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "Sauer Health Care", "City/Town": "WINONA", "State": "MN", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "Good Samaritan Society - Stillwater", "City/Town": "STILLWATER", "State": "MN", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "53", "severity_priority": "Minor"}, {"Provider Name": "The Waterview Pines LLC", "City/Town": "VIRGINIA", "State": "MN", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "Good Samaritan Society - International Falls", "City/Town": "INTERNATIONAL FALLS", "State": "MN", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "The Estates at Linden LLC", "City/Town": "STILLWATER", "State": "MN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "Minnesota Masonic Home Care Center", "City/Town": "BLOOMINGTON", "State": "MN", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "53", "severity_priority": "Minor"}, {"Provider Name": "Fairview Care Center", "City/Town": "DODGE CENTER", "State": "MN", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "The Estates at Rush City LLC", "City/Town": "RUSH CITY", "State": "MN", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "WABASSO RESTORATIVE CARE CENTER", "City/Town": "WABASSO", "State": "MN", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "EDENBROOK OF ROCHESTER", "City/Town": "ROCHESTER", "State": "MN", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "53", "severity_priority": "Minor"}, {"Provider Name": "Thorne Crest Retirement Center", "City/Town": "ALBERT LEA", "State": "MN", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "69", "severity_priority": "Serious"}, {"Provider Name": "Thorne Crest Retirement Center", "City/Town": "ALBERT LEA", "State": "MN", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "F", "days_since_survey": "69", "severity_priority": "Serious"}, {"Provider Name": "Jones Harrison Residence", "City/Town": "MINNEAPOLIS", "State": "MN", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "EMMANUEL NURSING HOME", "City/Town": "DETROIT LAKES", "State": "MN", "Survey Date": "2026-02-11", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "54", "severity_priority": "Minor"}, {"Provider Name": "Cura of Monticello", "City/Town": "MONTICELLO", "State": "MN", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "LAKE RIDGE CARE CENTER OF BUFFALO, INC.", "City/Town": "BUFFALO", "State": "MN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "Victory Health & Rehabilitation Center", "City/Town": "MINNEAPOLIS", "State": "MN", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "Good Samaritan Society - Windom", "City/Town": "WINDOM", "State": "MN", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "69", "severity_priority": "Minor"}, {"Provider Name": "Good Samaritan Society - Windom", "City/Town": "WINDOM", "State": "MN", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "53", "severity_priority": "Serious"}, {"Provider Name": "Colonial Manor Nursing Home", "City/Town": "LAKEFIELD", "State": "MN", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "Colonial Manor Nursing Home", "City/Town": "LAKEFIELD", "State": "MN", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "BUFFALO LAKE HEALTH CARE CENTER", "City/Town": "BUFFALO LAKE", "State": "MN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "BUFFALO LAKE HEALTH CARE CENTER", "City/Town": "BUFFALO LAKE", "State": "MN", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "DIVERSICARE OF TYLERTOWN", "City/Town": "TYLERTOWN", "State": "MS", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "DIVERSICARE OF TUPELO", "City/Town": "TUPELO", "State": "MS", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "DIVERSICARE OF BROOKHAVEN", "City/Town": "BROOKHAVEN", "State": "MS", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "GREENBOUGH HEALTH AND REHABILITATION CENTER", "City/Town": "CLARKSDALE", "State": "MS", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "ST SOPHIA HEALTH & REHABILITATION CENTER", "City/Town": "FLORISSANT", "State": "MO", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "PARKSIDE MANOR", "City/Town": "COLUMBIA", "State": "MO", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "ATRIUM PLACE HEALTH AND REHABILITATION", "City/Town": "SAINT LOUIS", "State": "MO", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "GROVE AT KIRKWOOD, THE", "City/Town": "KIRKWOOD", "State": "MO", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "GROVE AT KIRKWOOD, THE", "City/Town": "KIRKWOOD", "State": "MO", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "JOHNSON COUNTY CARE CENTER", "City/Town": "WARRENSBURG", "State": "MO", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "Continental Springs, LLC", "City/Town": "South Sioux City", "State": "NE", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "GOLDEN VIEW HEALTH CARE CENTER", "City/Town": "MEREDITH", "State": "NH", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "PLEASANT VIEW CENTER", "City/Town": "CONCORD", "State": "NH", "Survey Date": "2026-01-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "84", "severity_priority": "Minor"}, {"Provider Name": "Wesley Pines Retirement Community", "City/Town": "Lumberton", "State": "NC", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "66", "severity_priority": "Minor"}, {"Provider Name": "Peak Resources- Shelby", "City/Town": "Shelby", "State": "NC", "Survey Date": "2026-02-11", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "54", "severity_priority": "Minor"}, {"Provider Name": "Valley Nursing and Rehabilitation Center", "City/Town": "Taylorsville", "State": "NC", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "The Greens at Lincolnton", "City/Town": "Lincolnton", "State": "NC", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "53", "severity_priority": "Serious"}, {"Provider Name": "Margate Health and Rehab Center", "City/Town": "Jefferson", "State": "NC", "Survey Date": "2026-02-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "52", "severity_priority": "Minor"}, {"Provider Name": "The Laurels of Pender", "City/Town": "Burgaw", "State": "NC", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "Windsor Rehabilitation and Healthcare Center", "City/Town": "Windsor", "State": "NC", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "Charlotte Health & Rehabilitation Center", "City/Town": "Charlotte", "State": "NC", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "River Landing at Sandy Ridge", "City/Town": "Colfax", "State": "NC", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "ST CATHERINES LIVING CENTER", "City/Town": "WAHPETON", "State": "ND", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "GOOD SAMARITAN SOCIETY - OAKES", "City/Town": "OAKES", "State": "ND", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "O'NEILL HEALTHCARE BAY VILLAGE", "City/Town": "BAY VILLAGE", "State": "OH", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "75", "severity_priority": "Minor"}, {"Provider Name": "ROCKY RIVER GARDENS REHAB AND NURSING CTR", "City/Town": "CLEVELAND", "State": "OH", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "HERITAGE THE", "City/Town": "FINDLAY", "State": "OH", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "MAJORA LANE CTR FOR REHAB & NSG CARE INC", "City/Town": "MILLERSBURG", "State": "OH", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "EMBASSY OF WINCHESTER", "City/Town": "CANAL WINCHESTER", "State": "OH", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "69", "severity_priority": "Minor"}, {"Provider Name": "CONTINUING HEALTHCARE AT FOREST HILL", "City/Town": "ST CLAIRSVILLE", "State": "OH", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "THE CONVALARIUM OF DUBLIN", "City/Town": "DUBLIN", "State": "OH", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "Majestic Care of Clyde", "City/Town": "CLYDE", "State": "OH", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "CORTLAND CENTER", "City/Town": "CORTLAND", "State": "OH", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "WALNUT CREEK NURSING CENTER", "City/Town": "KETTERING", "State": "OH", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "CONTINUING HEALTHCARE OF CUYAHOGA FALLS", "City/Town": "CUYAHOGA FALLS", "State": "OH", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "74", "severity_priority": "Serious"}, {"Provider Name": "RAE ANN GENEVA", "City/Town": "GENEVA", "State": "OH", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "76", "severity_priority": "Minor"}, {"Provider Name": "EMBASSY OF SWANTON", "City/Town": "SWANTON", "State": "OH", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "90", "severity_priority": "Minor"}, {"Provider Name": "ALTERCARE CAMBRIDGE INC.", "City/Town": "CAMBRIDGE", "State": "OH", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "KIMES NURSING & REHAB CTR", "City/Town": "ATHENS", "State": "OH", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "AVENUE AT BROADVIEW HEIGHTS", "City/Town": "BROADVIEW HEIGHTS", "State": "OH", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "FOUNTAIN VIEW MANOR, INC", "City/Town": "HENRYETTA", "State": "OK", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "76", "severity_priority": "Minor"}, {"Provider Name": "Avamere Rehabilitation Of Eugene", "City/Town": "EUGENE", "State": "OR", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "76", "severity_priority": "Serious"}, {"Provider Name": "MARQUIS NEWBERG", "City/Town": "NEWBERG", "State": "OR", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "80", "severity_priority": "Minor"}, {"Provider Name": "SQUIRREL HILL WELLNESS AND REHABILITATION CENTER", "City/Town": "PITTSBURGH", "State": "PA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "KADIMA REHABILITATION & NURSING AT GREENVILLE", "City/Town": "GREENVILLE", "State": "PA", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "ROBERT PACKER HOSPITAL SKILLED CARE AND REHABILIT", "City/Town": "TOWANDA", "State": "PA", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "WEST READING SKILLED NURSING AND REHABILITATION CE", "City/Town": "WEST READING", "State": "PA", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "CAPITOL REHABILITATION AND HEALTHCARE CENTER", "City/Town": "HARRISBURG", "State": "PA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "GREENWOOD CENTER FOR REHABILITATION AND NURSING", "City/Town": "LEWISTOWN", "State": "PA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "SLATE BELT HEALTH & REHABILITATION CENTER", "City/Town": "BANGOR", "State": "PA", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "MT MACRINA MANOR", "City/Town": "UNIONTOWN", "State": "PA", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "EDINBORO MANOR", "City/Town": "EDINBORO", "State": "PA", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "WOODHAVEN HEALTH & REHAB CENTER", "City/Town": "MONROEVILLE", "State": "PA", "Survey Date": "2026-01-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "84", "severity_priority": "Serious"}, {"Provider Name": "SPRING HILL REHABILITATION AND NURSING CENTER", "City/Town": "PITTSBURGH", "State": "PA", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "KADIMA REHABILITATION & NURSING AT WASHINGTON", "City/Town": "WASHINGTON", "State": "PA", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "66", "severity_priority": "Serious"}, {"Provider Name": "RIVERSIDE HEALTH & REHAB CENTER", "City/Town": "MCKEESPORT", "State": "PA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "HARMON HOUSE HEALTH & REHAB CENTER", "City/Town": "MOUNT PLEASANT", "State": "PA", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "GREENWOOD CENTER FOR NURSING AND REHAB", "City/Town": "TAMAQUA", "State": "PA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "KITTANNING HEALTH & REHAB CENTER", "City/Town": "KITTANNING", "State": "PA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "RICHFIELD HEALTHCARE AND REHABILITATION CENTER", "City/Town": "RICHFIELD", "State": "PA", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "FOX SUBACUTE AT MECHANICSBURG", "City/Town": "MECHANICSBURG", "State": "PA", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "Adviniacare Providence Dodge Rehab Center, LLC", "City/Town": "Providence", "State": "RI", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "Royal Middletown Nursing Center", "City/Town": "Middletown", "State": "RI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "AdviniaCare Orchard, LLC", "City/Town": "East Providence", "State": "RI", "Survey Date": "2026-01-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "L", "days_since_survey": "84", "severity_priority": "Critical"}, {"Provider Name": "Wildewood Downs", "City/Town": "Columbia", "State": "SC", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "TEKAKWITHA LIVING CENTER", "City/Town": "SISSETON", "State": "SD", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "74", "severity_priority": "Serious"}, {"Provider Name": "AVANTARA MOUNTAIN VIEW", "City/Town": "RAPID CITY", "State": "SD", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "90", "severity_priority": "Serious"}, {"Provider Name": "AVANTARA REDFIELD", "City/Town": "REDFIELD", "State": "SD", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "68", "severity_priority": "Serious"}, {"Provider Name": "AVANTARA CLARK CITY", "City/Town": "CLARK", "State": "SD", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "AVANTARA SAINT CLOUD", "City/Town": "RAPID CITY", "State": "SD", "Survey Date": "2026-01-27", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "69", "severity_priority": "Serious"}, {"Provider Name": "DOW RUMMEL VILLAGE", "City/Town": "SIOUX FALLS", "State": "SD", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "TENNESSEE STATE VETERANS HOME- CLEVELAND", "City/Town": "CLEVELAND", "State": "TN", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "Castle Hills Rehabilitation and Care Center", "City/Town": "San Antonio", "State": "TX", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "80", "severity_priority": "Minor"}, {"Provider Name": "Laredo West Nursing and Rehabilitation Center", "City/Town": "Laredo", "State": "TX", "Survey Date": "2026-01-10", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "86", "severity_priority": "Minor"}, {"Provider Name": "Focused Care of Waxahachie", "City/Town": "Waxahachie", "State": "TX", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "ROBSTOWN NURSING AND REHABILITATION CENTER", "City/Town": "ROBSTOWN", "State": "TX", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "90", "severity_priority": "Minor"}, {"Provider Name": "THE ARBORS HEALTHCARE AND REHABILITATION CENTER", "City/Town": "RUSK", "State": "TX", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "VAN HEALTHCARE", "City/Town": "VAN", "State": "TX", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "Avir at Enchanted Rock", "City/Town": "FREDERICKSBURG", "State": "TX", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "KAUFMAN HEALTHCARE CENTER", "City/Town": "KAUFMAN", "State": "TX", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "Pinnacle Nursing and Rehabilitation Center", "City/Town": "Price", "State": "UT", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "Crescent Manor Care Ctrs", "City/Town": "Bennington", "State": "VT", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "Norfolk Health Care Center", "City/Town": "NORFOLK", "State": "VA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "LIFE CARE CENTER OF KENNEWICK", "City/Town": "KENNEWICK", "State": "WA", "Survey Date": "2026-01-26", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "70", "severity_priority": "Minor"}, {"Provider Name": "LINDEN GROVE HEALTH CARE CENTER", "City/Town": "PUYALLUP", "State": "WA", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "SALMON CREEK POST ACUTE & REHABILITATION", "City/Town": "VANCOUVER", "State": "WA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "Dunbar Center", "City/Town": "DUNBAR", "State": "WV", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "PIERPONT CENTER AT FAIRMONT CAMPUS", "City/Town": "FAIRMONT", "State": "WV", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "RESOLVE AT WEST ALLIS RESPIRATORY AND REHAB", "City/Town": "WEST ALLIS", "State": "WI", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "OAK PARK NURSING AND REHAB CENTER", "City/Town": "MADISON", "State": "WI", "Survey Date": "2026-01-10", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "L", "days_since_survey": "86", "severity_priority": "Critical"}, {"Provider Name": "TWIN PORTS HEALTH SERVICES", "City/Town": "SUPERIOR", "State": "WI", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "74", "severity_priority": "Serious"}, {"Provider Name": "OAKBROOK HEALTH AND REHABILITATION", "City/Town": "THORP", "State": "WI", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "OAKBROOK HEALTH AND REHABILITATION", "City/Town": "THORP", "State": "WI", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "Grancare Nursing Center", "City/Town": "Green Bay", "State": "WI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "MEADOWBROOK AT BLACK RIVER FALLS", "City/Town": "BLACK RIVER FALLS", "State": "WI", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "82", "severity_priority": "Serious"}, {"Provider Name": "Lasata Care Center", "City/Town": "Cedarburg", "State": "WI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "BARRON CARE AND REHABILITATION", "City/Town": "BARRON", "State": "WI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "NEIGHBORS - EAST NEIGHBORHOOD (THE)", "City/Town": "MENOMONIE", "State": "WI", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "Polaris Rehabilitation and Care Center", "City/Town": "Cheyenne", "State": "WY", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "Star Valley Care Center", "City/Town": "Afton", "State": "WY", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "53", "severity_priority": "Minor"}, {"Provider Name": "FIRESIDE HEALTH CARE CENTER", "City/Town": "SANTA MONICA", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "TRACY NURSING AND REHABILITATION CENTER", "City/Town": "TRACY", "State": "CA", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "76", "severity_priority": "Minor"}, {"Provider Name": "Del Rosa Villa", "City/Town": "San Bernardino", "State": "CA", "Survey Date": "2026-02-12", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "53", "severity_priority": "Minor"}, {"Provider Name": "THE SPRINGS HEALTHCARE CENTER AT THE CARLOTTA", "City/Town": "PALM DESERT", "State": "CA", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "THE REHABILITATION CENTER OF BAKERSFIELD", "City/Town": "BAKERSFIELD", "State": "CA", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "80", "severity_priority": "Serious"}, {"Provider Name": "THE REHABILITATION CENTER OF BAKERSFIELD", "City/Town": "BAKERSFIELD", "State": "CA", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0881", "Deficiency Description": "Implement a program that monitors antibiotic use.", "Scope Severity Code": "D", "days_since_survey": "80", "severity_priority": "Minor"}, {"Provider Name": "KEI-AI SOUTH BAY HEALTHCARE CENTER", "City/Town": "GARDENA", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "CARMEL MOUNTAIN REHABILITATION & HEALTHCARE CENTER", "City/Town": "SAN DIEGO", "State": "CA", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "74", "severity_priority": "Serious"}, {"Provider Name": "FOUNTAIN VALLEY POST ACUTE", "City/Town": "FOUNTAIN VALLEY", "State": "CA", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "RIVERSIDE POSTACUTE CARE", "City/Town": "RIVERSIDE", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "GLENDORA CANYON TRANSITIONAL CARE UNIT", "City/Town": "GLENDORA", "State": "CA", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "80", "severity_priority": "Serious"}, {"Provider Name": "GLENHAVEN HEALTHCARE", "City/Town": "GLENDALE", "State": "CA", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "87", "severity_priority": "Serious"}, {"Provider Name": "ARARAT POST ACUTE", "City/Town": "GLENDALE", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "73", "severity_priority": "Serious"}, {"Provider Name": "LINDSAY GARDENS NURSING & REHABILITATION", "City/Town": "LINDSAY", "State": "CA", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "88", "severity_priority": "Serious"}, {"Provider Name": "DEL AMO GARDENS CARE CENTER", "City/Town": "TORRANCE", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "73", "severity_priority": "Minor"}, {"Provider Name": "Terrace Post Acute", "City/Town": "VAN NUYS", "State": "CA", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "SANTA MONICA REHABILITATION CENTER", "City/Town": "SANTA MONICA", "State": "CA", "Survey Date": "2026-01-06", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "90", "severity_priority": "Serious"}, {"Provider Name": "LAWNDALE HEALTHCARE & WELLNESS CENTRE LLC", "City/Town": "LAWNDALE", "State": "CA", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "75", "severity_priority": "Minor"}, {"Provider Name": "LAWNDALE HEALTHCARE & WELLNESS CENTRE LLC", "City/Town": "LAWNDALE", "State": "CA", "Survey Date": "2026-01-23", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "F", "days_since_survey": "73", "severity_priority": "Serious"}, {"Provider Name": "ELMWOOD CARE CENTER", "City/Town": "BERKELEY", "State": "CA", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "VETERANS HOME OF CALIFORNIA - FRESNO", "City/Town": "FRESNO", "State": "CA", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "66", "severity_priority": "Serious"}, {"Provider Name": "Avir at Pampa", "City/Town": "PAMPA", "State": "TX", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "68", "severity_priority": "Serious"}, {"Provider Name": "Paradigm at Woodwind Lakes", "City/Town": "Houston", "State": "TX", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "HIGHLAND PINES NURSING HOME", "City/Town": "LONGVIEW", "State": "TX", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "Cascades at Port Arthur", "City/Town": "Port Arthur", "State": "TX", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "Paradigm at Faith Memorial", "City/Town": "Pasadena", "State": "TX", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "WINDSOR NURSING AND REHABILITATION CENTER OF WESLA", "City/Town": "WESLACO", "State": "TX", "Survey Date": "2026-01-14", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "82", "severity_priority": "Minor"}, {"Provider Name": "SUNFLOWER PARK HEALTH CARE", "City/Town": "KAUFMAN", "State": "TX", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "89", "severity_priority": "Serious"}, {"Provider Name": "Rockwall Nursing Care Center", "City/Town": "Rockwall", "State": "TX", "Survey Date": "2026-01-09", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "87", "severity_priority": "Minor"}, {"Provider Name": "WINDSOR NURSING AND REHABILITATION CENTER OF RAYMO", "City/Town": "RAYMONDVILLE", "State": "TX", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "75", "severity_priority": "Minor"}, {"Provider Name": "CYPRESS WOODS CARE CENTER", "City/Town": "ANGLETON", "State": "TX", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "C C YOUNG MEMORIAL HOME", "City/Town": "DALLAS", "State": "TX", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "Avir at River Ridge", "City/Town": "Corpus Christi", "State": "TX", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "GARLAND NURSING AND REHABILITATION", "City/Town": "GARLAND", "State": "TX", "Survey Date": "2026-01-17", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "79", "severity_priority": "Minor"}, {"Provider Name": "GREENBRIER NURSING & REHABILITATION CENTER OF PALE", "City/Town": "PALESTINE", "State": "TX", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "67", "severity_priority": "Serious"}, {"Provider Name": "WELLINGTON CARE CENTER", "City/Town": "WELLINGTON", "State": "TX", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "66", "severity_priority": "Minor"}, {"Provider Name": "THE PLAZA AT EDGEMERE", "City/Town": "DALLAS", "State": "TX", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "74", "severity_priority": "Minor"}, {"Provider Name": "PARK PLACE NURSING & REHABILITATION CENTER", "City/Town": "TYLER", "State": "TX", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "75", "severity_priority": "Serious"}, {"Provider Name": "SILSBEE OAKS HEALTH CARE LLP", "City/Town": "SILSBEE", "State": "TX", "Survey Date": "2026-01-28", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "68", "severity_priority": "Minor"}, {"Provider Name": "Park View Nursing Care Center", "City/Town": "Muleshoe", "State": "TX", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "81", "severity_priority": "Minor"}, {"Provider Name": "THE PLAZA AT RICHARDSON", "City/Town": "RICHARDSON", "State": "TX", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "CALDER WOODS", "City/Town": "BEAUMONT", "State": "TX", "Survey Date": "2026-01-30", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "66", "severity_priority": "Serious"}, {"Provider Name": "Avir at Fort Worth", "City/Town": "FORT WORTH", "State": "TX", "Survey Date": "2026-01-20", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "76", "severity_priority": "Minor"}, {"Provider Name": "Falcon Point Post Acute", "City/Town": "Katy", "State": "TX", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "Bayou Pines Care Center", "City/Town": "La Marque", "State": "TX", "Survey Date": "2026-01-15", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "81", "severity_priority": "Serious"}, {"Provider Name": "RAYBURN HEALTH CARE & REHABILITATION", "City/Town": "JASPER", "State": "TX", "Survey Date": "2026-01-21", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "75", "severity_priority": "Serious"}, {"Provider Name": "AVIR AT COTULLA", "City/Town": "COTULLA", "State": "TX", "Survey Date": "2026-01-08", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "88", "severity_priority": "Minor"}, {"Provider Name": "SPJST REST HOME 1", "City/Town": "TAYLOR", "State": "TX", "Survey Date": "2026-01-16", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "80", "severity_priority": "Serious"}, {"Provider Name": "CORINTH REHABILITATION SUITES ON THE PARKWAY", "City/Town": "CORINTH", "State": "TX", "Survey Date": "2026-01-07", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "89", "severity_priority": "Minor"}, {"Provider Name": "WILLOW PARK REHABILITATION AND CARE CENTER", "City/Town": "WILLOW PARK", "State": "TX", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "Midlothian Healthcare Center", "City/Town": "Midlothian", "State": "TX", "Survey Date": "2026-01-31", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "65", "severity_priority": "Minor"}, {"Provider Name": "THE HEIGHTS OF BULVERDE", "City/Town": "SPRING BRANCH", "State": "TX", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "83", "severity_priority": "Minor"}, {"Provider Name": "Accel at College Station", "City/Town": "College Station", "State": "TX", "Survey Date": "2026-01-29", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "D", "days_since_survey": "67", "severity_priority": "Minor"}, {"Provider Name": "Terra Bella Health and Wellness Suites", "City/Town": "Houston", "State": "TX", "Survey Date": "2026-01-13", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "83", "severity_priority": "Serious"}, {"Provider Name": "Lakeside Health and Wellness", "City/Town": "Kemp", "State": "TX", "Survey Date": "2026-01-22", "Deficiency Tag Number": "0880", "Deficiency Description": "Provide and implement an infection prevention and control program.", "Scope Severity Code": "E", "days_since_survey": "74", "severity_priority": "Serious"}];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NAICS → plain-English facility type label
-// Key = first 4 digits of naics_code.
-// ─────────────────────────────────────────────────────────────────────────────
+// ── NAICS helpers ─────────────────────────────────────────────────────────────
 const NAICS_LABELS = {
-  "6211": "Physician Office",
-  "6212": "Dental Office",
-  "6213": "Other Health Practitioner",
-  "6214": "Outpatient / Specialty Clinic",
-  "6215": "Medical & Diagnostic Laboratory",
-  "6216": "Home Health Care",
-  "6219": "Other Ambulatory Care",
-  "6221": "General Hospital",
-  "6222": "Psychiatric Hospital",
-  "6223": "Specialty Hospital",
-  "6231": "Nursing Care Facility",
-  "6232": "Assisted Living / Residential Care",
-  "6233": "Continuing Care Retirement",
-  "6239": "Other Residential Care",
-  "6241": "Social Services",
-  "6242": "Community Organization",
-  "6243": "Vocational Rehabilitation",
-  "6244": "Child Care / Other Social Services",
+  "6211":"Physician Office","6212":"Dental Office","6213":"Other Health Practitioner",
+  "6214":"Outpatient / Specialty Clinic","6215":"Medical & Diagnostic Laboratory",
+  "6216":"Home Health Care","6219":"Other Ambulatory Care",
+  "6221":"General Hospital","6222":"Psychiatric Hospital","6223":"Specialty Hospital",
+  "6231":"Nursing Care Facility","6232":"Assisted Living / Residential Care",
+  "6233":"Continuing Care Retirement","6239":"Other Residential Care",
+  "6241":"Social Services","6242":"Community Organization",
+  "6243":"Vocational Rehabilitation","6244":"Child Care / Other Social Services"
+};
+function facTypeLabel(n) { return NAICS_LABELS[String(n).slice(0,4)] || n; }
+function naicsRowClass(n) {
+  const p = String(n).slice(0,3);
+  return p==="621"?"naics-621":p==="622"?"naics-622":p==="623"?"naics-623":p==="624"?"naics-624":"";
+}
+
+// ── OSHA violation map ────────────────────────────────────────────────────────
+const VIOL_MAP = {
+  "19101030": { tag:"Bloodborne Pathogens", cls:"bbp",    desc:"Cited for failures in sharps disposal, exposure control plans, or biohazard waste handling." },
+  "19101200": { tag:"Hazard Communication", cls:"hazcom", desc:"Cited for failures in chemical labeling, safety data sheets, or hazardous material handling." }
 };
 
-// Return the label for a naics_code string, falling back to the raw code.
-function facTypeLabel(naics) {
-  return NAICS_LABELS[String(naics).slice(0, 4)] || naics;
+// ── CMS severity helpers ──────────────────────────────────────────────────────
+const SEV_ROW  = { Critical:"sev-critical", Serious:"sev-serious", Minor:"sev-minor" };
+const SEV_CHIP = { Critical:"critical",     Serious:"serious",     Minor:"minor"     };
+
+// ── Sort state ────────────────────────────────────────────────────────────────
+const sortState = {
+  osha: { col:"fac_type",        asc:true },
+  cms:  { col:"days_since_survey", asc:true }
+};
+
+// ── HTML escape ───────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
-// Return the CSS row class based on the first 3 digits of the NAICS code.
-// 621 → green, 622/623 → yellow, 624 → gray
-function naicsRowClass(naics) {
-  const prefix3 = String(naics).slice(0, 3);
-  if (prefix3 === "621") return "naics-621";
-  if (prefix3 === "622") return "naics-622";
-  if (prefix3 === "623") return "naics-623";
-  if (prefix3 === "624") return "naics-624";
-  return "";
+// ── Tab switch ────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("panel-"+name).classList.add("active");
+  document.getElementById("tab-"+name).classList.add("active");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sort state
-// ─────────────────────────────────────────────────────────────────────────────
-let sortCol = "fac_type";
-let sortAsc = true;
+// ── Populate OSHA dropdowns ───────────────────────────────────────────────────
+(function(){
+  const stEl = document.getElementById("oshaState");
+  const ftEl = document.getElementById("oshaFacType");
+  [...new Set(RAW_DATA.map(r=>r.site_state))].sort().forEach(s=>{const o=document.createElement("option");o.value=o.textContent=s;stEl.appendChild(o);});
+  [...new Set(RAW_DATA.map(r=>facTypeLabel(r.naics_code)))].sort().forEach(f=>{const o=document.createElement("option");o.value=o.textContent=f;ftEl.appendChild(o);});
+})();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Populate dropdowns dynamically from data
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Populate CMS state dropdown ───────────────────────────────────────────────
+(function(){
+  const stEl = document.getElementById("cmsState");
+  [...new Set(CMS_DATA.map(r=>r["State"]))].sort().forEach(s=>{const o=document.createElement("option");o.value=o.textContent=s;stEl.appendChild(o);});
+})();
 
-// State dropdown
-const states = [...new Set(RAW_DATA.map(r => r.site_state))].sort();
-const stateSelect = document.getElementById("stateFilter");
-states.forEach(st => {
-  const opt = document.createElement("option");
-  opt.value = opt.textContent = st;
-  stateSelect.appendChild(opt);
-});
-
-// Facility type dropdown — unique labels present in the data, sorted A-Z
-const facTypes = [...new Set(RAW_DATA.map(r => facTypeLabel(r.naics_code)))].sort();
-const facTypeSelect = document.getElementById("facTypeFilter");
-facTypes.forEach(label => {
-  const opt = document.createElement("option");
-  opt.value = opt.textContent = label;
-  facTypeSelect.appendChild(opt);
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Render table — applies filters and sort, then rebuilds tbody
-// ─────────────────────────────────────────────────────────────────────────────
-function renderTable() {
-  const searchVal  = document.getElementById("searchBox").value.toLowerCase().trim();
-  const facTypeVal = document.getElementById("facTypeFilter").value;
-  const stateVal   = document.getElementById("stateFilter").value;
-
-  // ── Filter ──
-  let rows = RAW_DATA.filter(r => {
-    const matchSearch  = !searchVal  ||
-      r.estab_name.toLowerCase().includes(searchVal) ||
-      r.site_city.toLowerCase().includes(searchVal);
-    const matchFacType = !facTypeVal || facTypeLabel(r.naics_code) === facTypeVal;
-    const matchState   = !stateVal   || r.site_state === stateVal;
-    return matchSearch && matchFacType && matchState;
+// ── Sort on column header click ───────────────────────────────────────────────
+document.querySelectorAll("th[data-col]").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const tab=th.dataset.tab, col=th.dataset.col;
+    if(sortState[tab].col===col) sortState[tab].asc=!sortState[tab].asc;
+    else { sortState[tab].col=col; sortState[tab].asc=true; }
+    tab==="osha"?renderOsha():renderCms();
   });
+});
 
-  // ── Sort ──
-  // fac_type is a derived virtual column — we sort on the label string.
+// ── OSHA render ───────────────────────────────────────────────────────────────
+function renderOsha() {
+  const search  = document.getElementById("oshaSearch").value.toLowerCase().trim();
+  const facType = document.getElementById("oshaFacType").value;
+  const state   = document.getElementById("oshaState").value;
+  const {col,asc} = sortState.osha;
   const numCols = ["days_since_citation","current_penalty","total_violations"];
-  rows.sort((a, b) => {
-    // fac_type is virtual — derive it from naics_code for comparison
-    let va = sortCol === "fac_type" ? facTypeLabel(a.naics_code) : (a[sortCol] ?? "");
-    let vb = sortCol === "fac_type" ? facTypeLabel(b.naics_code) : (b[sortCol] ?? "");
-    if (numCols.includes(sortCol)) {
-      va = parseFloat(va) || 0;
-      vb = parseFloat(vb) || 0;
-    } else {
-      va = String(va).toLowerCase();
-      vb = String(vb).toLowerCase();
-    }
-    if (va < vb) return sortAsc ? -1 :  1;
-    if (va > vb) return sortAsc ?  1 : -1;
-    return 0;
+
+  let rows = RAW_DATA.filter(r=>{
+    return (!search  || r.estab_name.toLowerCase().includes(search) || r.site_city.toLowerCase().includes(search))
+        && (!facType || facTypeLabel(r.naics_code)===facType)
+        && (!state   || r.site_state===state);
+  });
+  rows.sort((a,b)=>{
+    let va=col==="fac_type"?facTypeLabel(a.naics_code):(a[col]??"");
+    let vb=col==="fac_type"?facTypeLabel(b.naics_code):(b[col]??"");
+    if(numCols.includes(col)){va=parseFloat(va)||0;vb=parseFloat(vb)||0;}
+    else{va=String(va).toLowerCase();vb=String(vb).toLowerCase();}
+    return va<vb?(asc?-1:1):va>vb?(asc?1:-1):0;
   });
 
-  // ── Build tbody ──
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
-
-  rows.forEach(r => {
-    // Derive facility type label and row color class from NAICS code
-    const facType  = facTypeLabel(r.naics_code);
-    const rowClass = naicsRowClass(r.naics_code);
-
-    const penalty = parseFloat(r.current_penalty) || 0;
-    const penaltyStr = penalty > 0
-      ? "$" + penalty.toLocaleString("en-US", {minimumFractionDigits: 0})
-      : "—";
-
-    // ── Extract the base standard code (first 8 digits) and strip the subpart suffix.
-    //    e.g. "19101030 C01 IV B" → base "19101030", displayed as "1910.1030"
-    const stdRaw  = (r.standard || "").trim();
-    const baseCode = stdRaw.slice(0, 8);   // always 8 digits: "19101030" or "19101200"
-    const stdDisplay = baseCode === "19101030" ? "1910.1030"
-                     : baseCode === "19101200" ? "1910.1200"
-                     : stdRaw;             // fallback: show as-is if unknown code
-
-    // ── Map base code to plain-English violation description + tag label ──
-    const VIOL_MAP = {
-      "19101030": {
-        tag:    "Bloodborne Pathogens",
-        tagCls: "bbp",
-        desc:   "Cited for failures in sharps disposal, exposure control plans, or biohazard waste handling."
-      },
-      "19101200": {
-        tag:    "Hazard Communication",
-        tagCls: "hazcom",
-        desc:   "Cited for failures in chemical labeling, safety data sheets, or hazardous material handling."
-      },
-    };
-    const viol = VIOL_MAP[baseCode] || { tag: "Other", tagCls: "", desc: "See OSHA citation record for details." };
-
-    const tr = document.createElement("tr");
-    tr.className = rowClass;
-    tr.innerHTML = `
-      <td><span class="fac-type">${esc(facType)}</span></td>
-      <td>${esc(r.estab_name)}</td>
-      <td>${esc(r.site_city)}</td>
-      <td>${esc(r.site_state)}</td>
-      <td style="font-family:monospace;font-size:11px">${esc(stdDisplay)}</td>
-      <td class="viol-desc">
-        <span class="viol-tag ${esc(viol.tagCls)}">${esc(viol.tag)}</span><br>
-        ${esc(viol.desc)}
-      </td>
+  const tbody=document.getElementById("oshaBody");
+  tbody.innerHTML="";
+  rows.forEach(r=>{
+    const ft=facTypeLabel(r.naics_code);
+    const rc=naicsRowClass(r.naics_code);
+    const pen=parseFloat(r.current_penalty)||0;
+    const penStr=pen>0?"$"+pen.toLocaleString("en-US",{minimumFractionDigits:0}):"—";
+    const base=(r.standard||"").trim().slice(0,8);
+    const stdDisp=base==="19101030"?"1910.1030":base==="19101200"?"1910.1200":(r.standard||"").trim();
+    const viol=VIOL_MAP[base]||{tag:"Other",cls:"",desc:"See OSHA citation record for details."};
+    const tr=document.createElement("tr");
+    tr.className=rc;
+    tr.innerHTML=`
+      <td><span class="fac-type">${esc(ft)}</span></td>
+      <td>${esc(r.estab_name)}</td><td>${esc(r.site_city)}</td><td>${esc(r.site_state)}</td>
+      <td style="font-family:monospace;font-size:11px">${esc(stdDisp)}</td>
+      <td class="desc"><span class="chip ${esc(viol.cls)}">${esc(viol.tag)}</span><br>${esc(viol.desc)}</td>
       <td>${esc(r.issuance_date)}</td>
       <td class="num">${esc(r.days_since_citation)}</td>
-      <td class="num">${penaltyStr}</td>
-      <td class="num">${esc(r.total_violations)}</td>
-    `;
+      <td class="num">${penStr}</td>
+      <td class="num">${esc(r.total_violations)}</td>`;
     tbody.appendChild(tr);
   });
-
-  // ── Empty state ──
-  document.getElementById("emptyMsg").style.display = rows.length ? "none" : "block";
-
-  // ── Row count ──
-  document.getElementById("rowCount").textContent =
-    `Showing ${rows.length} of ${RAW_DATA.length} facilities`;
-
-  // ── Sort indicators ──
-  document.querySelectorAll("th").forEach(th => {
-    th.classList.remove("sort-asc", "sort-desc");
-    if (th.dataset.col === sortCol) {
-      th.classList.add(sortAsc ? "sort-asc" : "sort-desc");
-    }
+  document.getElementById("oshaEmpty").style.display=rows.length?"none":"block";
+  document.getElementById("oshaCount").textContent=`Showing ${rows.length} of ${RAW_DATA.length} facilities`;
+  document.querySelectorAll("#oshaTable th[data-col]").forEach(th=>{
+    th.classList.remove("sort-asc","sort-desc");
+    if(th.dataset.col===col) th.classList.add(asc?"sort-asc":"sort-desc");
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Escape HTML to prevent XSS from data values
-// ─────────────────────────────────────────────────────────────────────────────
-function esc(str) {
-  return String(str ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+// ── CMS render ────────────────────────────────────────────────────────────────
+function renderCms() {
+  const search   = document.getElementById("cmsSearch").value.toLowerCase().trim();
+  const severity = document.getElementById("cmsSeverity").value;
+  const state    = document.getElementById("cmsState").value;
+  const {col,asc} = sortState.cms;
+  const numCols  = ["days_since_survey"];
+
+  let rows = CMS_DATA.filter(r=>{
+    return (!search   || r["Provider Name"].toLowerCase().includes(search) || r["City/Town"].toLowerCase().includes(search))
+        && (!severity || r.severity_priority===severity)
+        && (!state    || r["State"]===state);
+  });
+  rows.sort((a,b)=>{
+    let va=a[col]??"", vb=b[col]??"";
+    if(numCols.includes(col)){va=parseFloat(va)||0;vb=parseFloat(vb)||0;}
+    else{va=String(va).toLowerCase();vb=String(vb).toLowerCase();}
+    return va<vb?(asc?-1:1):va>vb?(asc?1:-1):0;
+  });
+
+  const tbody=document.getElementById("cmsBody");
+  tbody.innerHTML="";
+  rows.forEach(r=>{
+    const sev=r.severity_priority||"Minor";
+    const tr=document.createElement("tr");
+    tr.className=SEV_ROW[sev]||"";
+    tr.innerHTML=`
+      <td>${esc(r["Provider Name"])}</td>
+      <td>${esc(r["City/Town"])}</td>
+      <td>${esc(r["State"])}</td>
+      <td style="font-family:monospace;font-size:11px">F${esc(r["Deficiency Tag Number"])}</td>
+      <td class="desc">${esc(r["Deficiency Description"])}</td>
+      <td>${esc(r["Survey Date"])}</td>
+      <td class="num">${esc(r["days_since_survey"])}</td>
+      <td><span class="chip ${SEV_CHIP[sev]||""}">${esc(sev)}</span></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("cmsEmpty").style.display=rows.length?"none":"block";
+  document.getElementById("cmsCount").textContent=`Showing ${rows.length} of ${CMS_DATA.length} facilities`;
+  document.querySelectorAll("#cmsTable th[data-col]").forEach(th=>{
+    th.classList.remove("sort-asc","sort-desc");
+    if(th.dataset.col===col) th.classList.add(asc?"sort-asc":"sort-desc");
+  });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Column header click → sort
-// ─────────────────────────────────────────────────────────────────────────────
-document.querySelectorAll("th[data-col]").forEach(th => {
-  th.addEventListener("click", () => {
-    const col = th.dataset.col;
-    if (sortCol === col) { sortAsc = !sortAsc; }
-    else { sortCol = col; sortAsc = true; }
-    renderTable();
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Filter controls → re-render on change
-// ─────────────────────────────────────────────────────────────────────────────
-document.getElementById("searchBox").addEventListener("input",    renderTable);
-document.getElementById("facTypeFilter").addEventListener("change", renderTable);
-document.getElementById("stateFilter").addEventListener("change",  renderTable);
-
-// ── Initial render ──
-renderTable();
+renderOsha();
+renderCms();
 </script>
 </body>
 </html>
