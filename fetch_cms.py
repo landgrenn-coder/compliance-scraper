@@ -130,11 +130,14 @@ cycle1 = survey_df[survey_df["Inspection Cycle"] == "1"][[
 ]].copy()
 
 cycle1 = cycle1.rename(columns={
-    "Health Survey Date":                  "inspection_date_cycle1",
-    "Total Number of Health Deficiencies": "total_deficiencies_cycle1",
+    # "std_survey_date" = date of the annual standard survey (NOT complaint survey date)
+    # These may differ from the citation Survey Date, which can come from a complaint survey
+    # that occurred later but is still labeled Inspection Cycle 1 by CMS.
+    "Health Survey Date":                  "std_survey_date",
+    "Total Number of Health Deficiencies": "std_survey_deficiencies",
 })
-cycle1["total_deficiencies_cycle1"] = pd.to_numeric(
-    cycle1["total_deficiencies_cycle1"], errors="coerce"
+cycle1["std_survey_deficiencies"] = pd.to_numeric(
+    cycle1["std_survey_deficiencies"], errors="coerce"
 ).fillna(0)
 print(f"  Facilities with cycle-1 data: {len(cycle1):,}")
 
@@ -145,9 +148,9 @@ result = result.merge(cycle1,         on=CCN, how="left")
 
 result["recent_fine_amount"]       = pd.to_numeric(result["recent_fine_amount"],       errors="coerce").fillna(0)
 result["total_fines_3yr"]          = pd.to_numeric(result["total_fines_3yr"],          errors="coerce").fillna(0)
-result["total_deficiencies_cycle1"]= pd.to_numeric(result["total_deficiencies_cycle1"],errors="coerce").fillna(0)
+result["std_survey_deficiencies"]   = pd.to_numeric(result["std_survey_deficiencies"],   errors="coerce").fillna(0)
 result["fine_date"]                = result["fine_date"].fillna("")
-result["inspection_date_cycle1"]   = result["inspection_date_cycle1"].fillna("")
+result["std_survey_date"]          = result["std_survey_date"].fillna("")
 
 # ── Step 9: Prospect score ────────────────────────────────────────────────────
 print("Step 9 — Calculating prospect_score...")
@@ -162,7 +165,7 @@ def score_row(r):
     if float(r.get("recent_fine_amount", 0) or 0) > 0:
         s += 3
 
-    defic = float(r.get("total_deficiencies_cycle1", 0) or 0)
+    defic = float(r.get("std_survey_deficiencies", 0) or 0)
     if defic > 20:   s += 3
     elif defic > 10: s += 2
 
@@ -193,7 +196,7 @@ print("  SUMMARY")
 print("=" * 55)
 print(f"  Total rows:                  {len(result):,}")
 print(f"  Rows with fines (recent):    {(result['recent_fine_amount'] > 0).sum():,}")
-print(f"  Rows with cycle-1 data:      {(result['total_deficiencies_cycle1'] > 0).sum():,}")
+print(f"  Rows with cycle-1 data:      {(result["std_survey_deficiencies"] > 0).sum():,}")
 print(f"  Score distribution:")
 for s in sorted(result["prospect_score"].unique(), reverse=True):
     n = (result["prospect_score"] == s).sum()
