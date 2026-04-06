@@ -1,0 +1,21 @@
+# ── Secret ──────────────────────────────────────────────────────────────────
+config.py          # contains your DOL API key — never commit this
+
+# ── Intermediate data files ──────────────────────────────────────────────────
+violations_raw.csv
+violations_checkpoint.csv
+inspections_raw.csv
+healthcare_violations.csv   # pre-dedup intermediate; final is committed instead
+
+# ── Logs & runtime output ────────────────────────────────────────────────────
+update_log.txt
+fetch_run.log
+launchd_out.log
+launchd_err.log
+nohup.out
+
+# ── macOS & Python ───────────────────────────────────────────────────────────
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo

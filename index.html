@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OSHA Healthcare Violation Prospects</title>
+
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      background: #f4f6f9;
+      color: #1a1a2e;
+    }
+
+    /* ── Page header — compact single line ── */
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    header h1 { font-size: 17px; font-weight: 700; letter-spacing: .2px; }
+    header .meta { font-size: 11px; color: #9ba4c0; }
+
+    /* ── Controls bar — single tight row ── */
+    .controls {
+      background: #fff;
+      border-bottom: 1px solid #dde2ec;
+      padding: 8px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .control-group { display: flex; align-items: center; gap: 5px; }
+    .controls label { font-size: 11px; font-weight: 600; color: #555; white-space: nowrap; }
+
+    /* Text search input */
+    #searchBox {
+      padding: 5px 9px;
+      border: 1px solid #ccd0da;
+      border-radius: 5px;
+      font-size: 12px;
+      width: 160px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #searchBox:focus { border-color: #4a6cf7; }
+
+    /* Dropdowns */
+    select {
+      padding: 5px 8px;
+      border: 1px solid #ccd0da;
+      border-radius: 5px;
+      font-size: 12px;
+      background: #fff;
+      cursor: pointer;
+      outline: none;
+    }
+    select:focus { border-color: #4a6cf7; }
+    #facTypeFilter { min-width: 185px; }
+
+    /* Row count badge */
+    #rowCount {
+      margin-left: auto;
+      font-size: 11px;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    /* ── Table wrapper — minimal padding ── */
+    .table-wrap {
+      padding: 12px 20px 28px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    /* ── Table header ── */
+    thead tr { background: #1a1a2e; color: #fff; }
+    th {
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .3px;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { background: #2c2c4e; }
+    th.sort-asc::after  { content: " ▲"; font-size: 9px; }
+    th.sort-desc::after { content: " ▼"; font-size: 9px; }
+
+    /* ── Table body — tight cells ── */
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #eef0f5;
+      vertical-align: middle;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { filter: brightness(0.96); }
+
+    /* ── Row colours by NAICS group ── */
+    tr.naics-621 { background: #e8f5e9; }
+    tr.naics-622,
+    tr.naics-623 { background: #fffde7; }
+    tr.naics-624 { background: #f5f5f5; }
+
+    /* ── Facility type label ── */
+    .fac-type { font-size: 11px; font-weight: 600; color: #333; white-space: nowrap; }
+
+    /* ── Numeric cells ── */
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ── Violation description — wraps vertically, capped width ── */
+    td.viol-desc {
+      white-space: normal;
+      width: 200px;       /* fixed width keeps table from growing wider */
+      min-width: 160px;
+      font-size: 11px;
+      color: #444;
+      line-height: 1.4;
+      vertical-align: top;
+      padding-top: 8px;
+    }
+
+    /* ── Coloured chip tag ── */
+    .viol-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      margin-bottom: 3px;
+    }
+    .viol-tag.bbp    { background: #fce4ec; color: #b71c1c; }
+    .viol-tag.hazcom { background: #fff3e0; color: #e65100; }
+
+    /* ── Empty state ── */
+    #emptyMsg {
+      display: none;
+      text-align: center;
+      padding: 36px;
+      color: #888;
+      font-size: 14px;
+    }
+
+    /* ── Legend — inline with controls, very compact ── */
+    .legend {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 5px 20px 8px;
+      font-size: 11px;
+      color: #555;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-swatch { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+    .sw1 { background: #e8f5e9; border: 1px solid #a5d6a7; }
+    .sw2 { background: #fffde7; border: 1px solid #ffe082; }
+    .sw3 { background: #f5f5f5; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+<!-- ── Page header ── -->
+<header>
+  <h1>OSHA Healthcare Violation Prospects</h1>
+  <span class="meta">Data last updated: 2026-03-02 &nbsp;·&nbsp; 14 facilities &nbsp;·&nbsp; 90-day citation window</span>
+</header>
+
+<!-- ── Filter / search controls ── -->
+<div class="controls">
+  <div class="control-group">
+    <label for="searchBox">🔍</label>
+    <input type="text" id="searchBox" placeholder="Search facility or city…" />
+  </div>
+
+  <div class="control-group">
+    <label for="facTypeFilter">Facility Type</label>
+    <!-- Options are built dynamically from NAICS_LABELS in JS -->
+    <select id="facTypeFilter">
+      <option value="">All Facility Types</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label for="stateFilter">State</label>
+    <select id="stateFilter">
+      <option value="">All States</option>
+    </select>
+  </div>
+
+  <span id="rowCount"></span>
+</div>
+
+<!-- ── Color legend ── -->
+<div class="legend">
+  <span style="font-weight:600; color:#333;">Row color:</span>
+  <span class="legend-item"><span class="legend-swatch sw1"></span> Ambulatory / Clinical (NAICS 621x)</span>
+  <span class="legend-item"><span class="legend-swatch sw2"></span> Inpatient / Residential (NAICS 622x–623x)</span>
+  <span class="legend-item"><span class="legend-swatch sw3"></span> Social Services (NAICS 624x)</span>
+</div>
+
+<!-- ── Data table ── -->
+<div class="table-wrap">
+  <table id="prospectsTable">
+    <thead>
+      <tr>
+        <th data-col="fac_type">Facility Type</th>
+        <th data-col="estab_name">Facility</th>
+        <th data-col="site_city">City</th>
+        <th data-col="site_state">ST</th>
+        <th data-col="standard">CFR Standard</th>
+        <th data-col="viol_desc">Violation Type</th>
+        <th data-col="issuance_date">Cited</th>
+        <th data-col="days_since_citation">Days Ago</th>
+        <th data-col="current_penalty">Penalty</th>
+        <th data-col="total_violations">Citations</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <p id="emptyMsg">No matching records found.</p>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// DATA — embedded directly so the page works from a file:// URL with no server.
+// Generated from healthcare_violations_final.csv on 2026-04-03.
+// ─────────────────────────────────────────────────────────────────────────────
+const RAW_DATA = [
+  {"priority_tier":"1","estab_name":"WADE CLAYTON DDS, PLLC","site_address":"2705 APPLING ROAD SUITE 101","site_city":"MEMPHIS","site_state":"TN","naics_code":"621210","standard":"19101030 C01 IV B","issuance_date":"2026-02-24","days_since_citation":"38","current_penalty":"940.0","total_violations":"9"},
+  {"priority_tier":"1","estab_name":"JOSHUA T MYERS DDS PC","site_address":"299 NE MAIN ST","site_city":"WINSTON","site_state":"OR","naics_code":"621210","standard":"19101030 C02 I","issuance_date":"2026-02-23","days_since_citation":"39","current_penalty":"1177.0","total_violations":"2"},
+  {"priority_tier":"1","estab_name":"CHEATHAM COUNTY EMERGENCY MEDICAL SERVICES","site_address":"3455 BELL STREET","site_city":"ASHLAND CITY","site_state":"TN","naics_code":"621910","standard":"19101200 E01","issuance_date":"2026-02-23","days_since_citation":"39","current_penalty":"0.0","total_violations":"2"},
+  {"priority_tier":"1","estab_name":"JOHN R. FOGAROS, D.D.S., P.C.","site_address":"4085 MALLORY LANE SUITE 116","site_city":"FRANKLIN","site_state":"TN","naics_code":"621210","standard":"19101030 D02 VIII B","issuance_date":"2026-02-20","days_since_citation":"42","current_penalty":"350.0","total_violations":"6"},
+  {"priority_tier":"1","estab_name":"MIAMI VALLEY HOSPITAL","site_address":"9000 NORTH MAIN STREET","site_city":"DAYTON","site_state":"OH","naics_code":"621910","standard":"19101030 H05 I C","issuance_date":"2026-02-18","days_since_citation":"44","current_penalty":"0.0","total_violations":"2"},
+  {"priority_tier":"1","estab_name":"HATO TEJAS X RAYS LLC","site_address":"CARR. 862 KM 2.7 63B HATO TEJAS","site_city":"BAYAMON","site_state":"PR","naics_code":"621512","standard":"19101030 G02 I","issuance_date":"2026-02-17","days_since_citation":"45","current_penalty":"850.0","total_violations":"1"},
+  {"priority_tier":"1","estab_name":"KANKAKEE VALLEY ORAL AND MAXILLOFACIAL SURGERY","site_address":"31 BRIARCLIFF PROFESSIONAL CENTER","site_city":"BOURBONNAIS","site_state":"IL","naics_code":"621210","standard":"19101030 F02 IV","issuance_date":"2026-02-17","days_since_citation":"45","current_penalty":"0.0","total_violations":"1"},
+  {"priority_tier":"2","estab_name":"SOUTHVIEW OPERATIONS LLC","site_address":"2000 OAKDALE AVE","site_city":"SAINT PAUL","site_state":"MN","naics_code":"623110","standard":"19101030 H05 I","issuance_date":"2026-02-24","days_since_citation":"38","current_penalty":"2100.0","total_violations":"1"},
+  {"priority_tier":"2","estab_name":"LENITY MANAGEMENT OR LLC","site_address":"93975 OCEAN WAY","site_city":"GOLD BEACH","site_state":"OR","naics_code":"623312","standard":"19101200 E01 I","issuance_date":"2026-02-23","days_since_citation":"39","current_penalty":"0.0","total_violations":"1"},
+  {"priority_tier":"2","estab_name":"INSPIRED SENIOR LIVING OF LAS VEGAS MT, LLC","site_address":"2320 IONE ROAD","site_city":"LAS VEGAS","site_state":"NV","naics_code":"623312","standard":"19101200 H01","issuance_date":"2026-02-19","days_since_citation":"43","current_penalty":"4966.0","total_violations":"1"},
+  {"priority_tier":"2","estab_name":"ELIM HOMES INC DBA ELIM WELLSPRING ASSISTED LIVING","site_address":"104 8TH AVE S","site_city":"PRINCETON","site_state":"MN","naics_code":"623110","standard":"19101030 F02 I","issuance_date":"2026-02-17","days_since_citation":"45","current_penalty":"7200.0","total_violations":"4"},
+  {"priority_tier":"3","estab_name":"D.A. TURNER BRANCH YMCA","site_address":"4384 WARM SPRINGS ROAD","site_city":"COLUMBUS","site_state":"GA","naics_code":"624110","standard":"19101200 G01","issuance_date":"2026-03-02","days_since_citation":"32","current_penalty":"0.0","total_violations":"3"},
+  {"priority_tier":"3","estab_name":"TOWN OF MADISON (Before/After School Program)","site_address":"980 DURHAM ROAD","site_city":"MADISON","site_state":"CT","naics_code":"624110","standard":"19101030 C01 I","issuance_date":"2026-02-27","days_since_citation":"35","current_penalty":"280.0","total_violations":"3"},
+  {"priority_tier":"3","estab_name":"TOWN OF MADISON (Senior Center)","site_address":"29 BRADLEY ROAD","site_city":"MADISON","site_state":"CT","naics_code":"624120","standard":"19101200 E01","issuance_date":"2026-02-27","days_since_citation":"35","current_penalty":"240.0","total_violations":"3"}
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAICS → plain-English facility type label
+// Key = first 4 digits of naics_code.
+// ─────────────────────────────────────────────────────────────────────────────
+const NAICS_LABELS = {
+  "6211": "Physician Office",
+  "6212": "Dental Office",
+  "6213": "Other Health Practitioner",
+  "6214": "Outpatient / Specialty Clinic",
+  "6215": "Medical & Diagnostic Laboratory",
+  "6216": "Home Health Care",
+  "6219": "Other Ambulatory Care",
+  "6221": "General Hospital",
+  "6222": "Psychiatric Hospital",
+  "6223": "Specialty Hospital",
+  "6231": "Nursing Care Facility",
+  "6232": "Assisted Living / Residential Care",
+  "6233": "Continuing Care Retirement",
+  "6239": "Other Residential Care",
+  "6241": "Social Services",
+  "6242": "Community Organization",
+  "6243": "Vocational Rehabilitation",
+  "6244": "Child Care / Other Social Services",
+};
+
+// Return the label for a naics_code string, falling back to the raw code.
+function facTypeLabel(naics) {
+  return NAICS_LABELS[String(naics).slice(0, 4)] || naics;
+}
+
+// Return the CSS row class based on the first 3 digits of the NAICS code.
+// 621 → green, 622/623 → yellow, 624 → gray
+function naicsRowClass(naics) {
+  const prefix3 = String(naics).slice(0, 3);
+  if (prefix3 === "621") return "naics-621";
+  if (prefix3 === "622") return "naics-622";
+  if (prefix3 === "623") return "naics-623";
+  if (prefix3 === "624") return "naics-624";
+  return "";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sort state
+// ─────────────────────────────────────────────────────────────────────────────
+let sortCol = "fac_type";
+let sortAsc = true;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Populate dropdowns dynamically from data
+// ─────────────────────────────────────────────────────────────────────────────
+
+// State dropdown
+const states = [...new Set(RAW_DATA.map(r => r.site_state))].sort();
+const stateSelect = document.getElementById("stateFilter");
+states.forEach(st => {
+  const opt = document.createElement("option");
+  opt.value = opt.textContent = st;
+  stateSelect.appendChild(opt);
+});
+
+// Facility type dropdown — unique labels present in the data, sorted A-Z
+const facTypes = [...new Set(RAW_DATA.map(r => facTypeLabel(r.naics_code)))].sort();
+const facTypeSelect = document.getElementById("facTypeFilter");
+facTypes.forEach(label => {
+  const opt = document.createElement("option");
+  opt.value = opt.textContent = label;
+  facTypeSelect.appendChild(opt);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Render table — applies filters and sort, then rebuilds tbody
+// ─────────────────────────────────────────────────────────────────────────────
+function renderTable() {
+  const searchVal  = document.getElementById("searchBox").value.toLowerCase().trim();
+  const facTypeVal = document.getElementById("facTypeFilter").value;
+  const stateVal   = document.getElementById("stateFilter").value;
+
+  // ── Filter ──
+  let rows = RAW_DATA.filter(r => {
+    const matchSearch  = !searchVal  ||
+      r.estab_name.toLowerCase().includes(searchVal) ||
+      r.site_city.toLowerCase().includes(searchVal);
+    const matchFacType = !facTypeVal || facTypeLabel(r.naics_code) === facTypeVal;
+    const matchState   = !stateVal   || r.site_state === stateVal;
+    return matchSearch && matchFacType && matchState;
+  });
+
+  // ── Sort ──
+  // fac_type is a derived virtual column — we sort on the label string.
+  const numCols = ["days_since_citation","current_penalty","total_violations"];
+  rows.sort((a, b) => {
+    // fac_type is virtual — derive it from naics_code for comparison
+    let va = sortCol === "fac_type" ? facTypeLabel(a.naics_code) : (a[sortCol] ?? "");
+    let vb = sortCol === "fac_type" ? facTypeLabel(b.naics_code) : (b[sortCol] ?? "");
+    if (numCols.includes(sortCol)) {
+      va = parseFloat(va) || 0;
+      vb = parseFloat(vb) || 0;
+    } else {
+      va = String(va).toLowerCase();
+      vb = String(vb).toLowerCase();
+    }
+    if (va < vb) return sortAsc ? -1 :  1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  // ── Build tbody ──
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+
+  rows.forEach(r => {
+    // Derive facility type label and row color class from NAICS code
+    const facType  = facTypeLabel(r.naics_code);
+    const rowClass = naicsRowClass(r.naics_code);
+
+    const penalty = parseFloat(r.current_penalty) || 0;
+    const penaltyStr = penalty > 0
+      ? "$" + penalty.toLocaleString("en-US", {minimumFractionDigits: 0})
+      : "—";
+
+    // ── Extract the base standard code (first 8 digits) and strip the subpart suffix.
+    //    e.g. "19101030 C01 IV B" → base "19101030", displayed as "1910.1030"
+    const stdRaw  = (r.standard || "").trim();
+    const baseCode = stdRaw.slice(0, 8);   // always 8 digits: "19101030" or "19101200"
+    const stdDisplay = baseCode === "19101030" ? "1910.1030"
+                     : baseCode === "19101200" ? "1910.1200"
+                     : stdRaw;             // fallback: show as-is if unknown code
+
+    // ── Map base code to plain-English violation description + tag label ──
+    const VIOL_MAP = {
+      "19101030": {
+        tag:    "Bloodborne Pathogens",
+        tagCls: "bbp",
+        desc:   "Cited for failures in sharps disposal, exposure control plans, or biohazard waste handling."
+      },
+      "19101200": {
+        tag:    "Hazard Communication",
+        tagCls: "hazcom",
+        desc:   "Cited for failures in chemical labeling, safety data sheets, or hazardous material handling."
+      },
+    };
+    const viol = VIOL_MAP[baseCode] || { tag: "Other", tagCls: "", desc: "See OSHA citation record for details." };
+
+    const tr = document.createElement("tr");
+    tr.className = rowClass;
+    tr.innerHTML = `
+      <td><span class="fac-type">${esc(facType)}</span></td>
+      <td>${esc(r.estab_name)}</td>
+      <td>${esc(r.site_city)}</td>
+      <td>${esc(r.site_state)}</td>
+      <td style="font-family:monospace;font-size:11px">${esc(stdDisplay)}</td>
+      <td class="viol-desc">
+        <span class="viol-tag ${esc(viol.tagCls)}">${esc(viol.tag)}</span><br>
+        ${esc(viol.desc)}
+      </td>
+      <td>${esc(r.issuance_date)}</td>
+      <td class="num">${esc(r.days_since_citation)}</td>
+      <td class="num">${penaltyStr}</td>
+      <td class="num">${esc(r.total_violations)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // ── Empty state ──
+  document.getElementById("emptyMsg").style.display = rows.length ? "none" : "block";
+
+  // ── Row count ──
+  document.getElementById("rowCount").textContent =
+    `Showing ${rows.length} of ${RAW_DATA.length} facilities`;
+
+  // ── Sort indicators ──
+  document.querySelectorAll("th").forEach(th => {
+    th.classList.remove("sort-asc", "sort-desc");
+    if (th.dataset.col === sortCol) {
+      th.classList.add(sortAsc ? "sort-asc" : "sort-desc");
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Escape HTML to prevent XSS from data values
+// ─────────────────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Column header click → sort
+// ─────────────────────────────────────────────────────────────────────────────
+document.querySelectorAll("th[data-col]").forEach(th => {
+  th.addEventListener("click", () => {
+    const col = th.dataset.col;
+    if (sortCol === col) { sortAsc = !sortAsc; }
+    else { sortCol = col; sortAsc = true; }
+    renderTable();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter controls → re-render on change
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById("searchBox").addEventListener("input",    renderTable);
+document.getElementById("facTypeFilter").addEventListener("change", renderTable);
+document.getElementById("stateFilter").addEventListener("change",  renderTable);
+
+// ── Initial render ──
+renderTable();
+</script>
+</body>
+</html>
