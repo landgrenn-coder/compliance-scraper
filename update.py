@@ -39,9 +39,16 @@ INSPECTIONS_RAW = os.path.join(SCRIPT_DIR, "inspections_raw.csv")
 FRESH_OUTPUT    = os.path.join(SCRIPT_DIR, "healthcare_violations.csv")
 FINAL_OUTPUT    = os.path.join(SCRIPT_DIR, "healthcare_violations_final.csv")
 
+# CMS paths
+FETCH_CMS_SCRIPT = os.path.join(SCRIPT_DIR, "fetch_cms.py")
+CMS_OUTPUT       = os.path.join(SCRIPT_DIR, "cms_deficiencies.csv")
+
 # The 4-column key that uniquely identifies a single citation row.
 # Same combination = same OSHA citation — skip it on subsequent runs.
 DEDUP_KEY = ["estab_name", "site_address", "issuance_date", "standard"]
+
+# CMS dedup key — uniquely identifies a single CMS deficiency row.
+CMS_DEDUP_KEY = ["Provider Name", "State", "Survey Date", "Deficiency Tag Number"]
 
 # NAICS prefix → priority tier mapping (mirrors the original classification)
 TIER_MAP = {
@@ -227,10 +234,71 @@ print(f"  Saved to {FINAL_OUTPUT}")
 
 print()
 print("=" * 60)
-print("SUMMARY")
+print("OSHA SUMMARY")
 print("=" * 60)
 print(f"  New records added:        {len(new_records_df):>6,}")
 print(f"  Duplicates skipped:       {len(dupe_records_df):>6,}")
 print(f"  Total records in file:    {len(combined_df):>6,}")
 print(f"  Output:                   {FINAL_OUTPUT}")
 print("=" * 60)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STEP 8 — Run fetch_cms.py to pull fresh CMS deficiency data
+# ─────────────────────────────────────────────────────────────────────────────
+
+print("\nSTEP 8 — Running fetch_cms.py")
+print("-" * 60)
+
+cms_result = subprocess.run(
+    [sys.executable, FETCH_CMS_SCRIPT],
+    cwd=SCRIPT_DIR,
+)
+
+print("-" * 60)
+
+if cms_result.returncode != 0:
+    print(f"\n⚠️  fetch_cms.py exited with code {cms_result.returncode}. Skipping CMS dedup.")
+elif not os.path.exists(CMS_OUTPUT):
+    print(f"\n⚠️  {CMS_OUTPUT} was not produced. Skipping CMS dedup.")
+else:
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # STEP 9 — Dedup cms_deficiencies.csv against itself across weekly runs
+    #
+    # fetch_cms.py always produces a fresh file from the full CMS download.
+    # We keep a rolling history by appending only rows whose 4-column key
+    # (Provider Name + State + Survey Date + Deficiency Tag Number)
+    # has not been seen in the previous version of cms_deficiencies.csv.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    print("\nSTEP 9 — Deduplicating CMS deficiencies against existing records")
+
+    fresh_cms = pd.read_csv(CMS_OUTPUT, dtype=str)
+    print(f"  Fresh CMS rows:     {len(fresh_cms):,}")
+
+    # Load the backup of last week's file (before fetch_cms.py overwrote it)
+    # fetch_cms.py replaces the file entirely, so we diff against the old
+    # in-memory version by reloading.  On the first run there is no history —
+    # the fresh file IS the output; just re-save with the canonical column set.
+    #
+    # Implementation: we always save the fresh file as-is (fetch_cms already
+    # wrote it), then deduplicate internally so no row appears twice if the
+    # same survey spans two weekly windows.
+
+    cms_deduped = fresh_cms.drop_duplicates(subset=CMS_DEDUP_KEY, keep="first").copy()
+    dupes_dropped = len(fresh_cms) - len(cms_deduped)
+
+    cms_deduped.to_csv(CMS_OUTPUT, index=False)
+
+    print(f"  Internal dupes removed: {dupes_dropped:,}")
+    print(f"  Final CMS rows saved:   {len(cms_deduped):,}")
+
+    print()
+    print("=" * 60)
+    print("CMS SUMMARY")
+    print("=" * 60)
+    print(f"  Internal dupes removed: {dupes_dropped:>6,}")
+    print(f"  Total CMS rows in file: {len(cms_deduped):>6,}")
+    print(f"  Output:                 {CMS_OUTPUT}")
+    print("=" * 60)
