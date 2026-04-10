@@ -63,8 +63,8 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     } | tee -a "$LOG_FILE"
 
     cd "$SCRIPT_DIR" || exit 1
-    git add index.html healthcare_violations_final.csv
-    git diff --cached --quiet || git commit -m "Weekly OSHA data refresh — $(timestamp)"
+    git add index.html healthcare_violations_final.csv cms_deficiencies.csv new_facilities.csv
+    git diff --cached --quiet || git commit -m "Weekly data refresh — $(timestamp)"
     git push 2>&1 | tee -a "$LOG_FILE"
     PUSH_CODE="${PIPESTATUS[0]}"
 
