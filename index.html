@@ -4525,6 +4525,7 @@ function renderCms(){
     const sc=parseInt(r.prospect_score)||0;
     const badgeCls=sc>=8?"hi":sc>=4?"mid":"lo";
     const url=esc(r["Inspection Report"]||"");
+    const td=TAG_DESC[r["Deficiency Tag Number"]]||{label:"F"+r["Deficiency Tag Number"],note:esc(r["Deficiency Description"]||"")};
     const tr=document.createElement("tr");tr.className=SEV_ROW[sev]||"";
     tr.innerHTML=`
       <td class="num"><span class="score-badge ${badgeCls}">${sc}</span></td>
@@ -4532,7 +4533,6 @@ function renderCms(){
       <td>${esc(r["City/Town"])}</td>
       <td>${esc(r["State"])}</td>
       <td style="font-family:monospace;font-size:11px">F${esc(r["Deficiency Tag Number"])}</td>
-      {(()=>{}const td=TAG_DESC[r["Deficiency Tag Number"]]||{label:"F"+r["Deficiency Tag Number"],note:esc(r["Deficiency Description"]||"")};})();
       <td class="wrap"><strong style="font-size:10px;color:#333">${esc(td.label)}</strong><br><span style="color:#555">${esc(td.note)}</span></td>
       <td>${esc(r["Survey Date"])}</td>
       <td class="num">${esc(r["days_since_survey"])}</td>
