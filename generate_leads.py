@@ -19,9 +19,7 @@ records  = df.fillna("").to_dict("records")
 today    = str(date.today())
 n_total  = len(records)
 n_fresh  = sum(1 for r in records if int(r.get("days_since_enrollment") or 99) <= 14)
-n_standalone = sum(1 for r in records if r.get("group_indicator","") == "Standalone")
-n_group      = n_total - n_standalone
-print(f"  Records: {n_total:,}  fresh: {n_fresh:,}  standalone: {n_standalone:,}  group: {n_group:,}")
+print(f"  Records: {n_total:,}  fresh: {n_fresh:,}")
 
 nf_json = json.dumps(records, ensure_ascii=False)
 
@@ -132,10 +130,6 @@ html = f"""<!DOCTYPE html>
     <div class="val" id="statFresh">{n_fresh:,}</div>
     <div class="lbl">New in Last 14 Days</div>
   </div>
-  <div class="stat-card purple">
-    <div class="val" id="statStandalone">{n_standalone:,}</div>
-    <div class="lbl">Standalone</div>
-  </div>
   <div class="stat-card orange">
     <div class="val" id="statShowing">—</div>
     <div class="lbl">Showing (filtered)</div>
@@ -154,13 +148,6 @@ html = f"""<!DOCTYPE html>
       <option value="60">≤ 60 days</option>
     </select>
   </div>
-  <div class="control-group"><label for="selGroup">Group</label>
-    <select id="selGroup" onchange="render()">
-      <option value="">All</option>
-      <option value="standalone">Standalone only</option>
-      <option value="group">Group / Subpart only</option>
-    </select>
-  </div>
   <span class="row-count" id="rowCount"></span>
 </div>
 
@@ -169,10 +156,6 @@ html = f"""<!DOCTYPE html>
   <span class="legend-item"><span class="swatch" style="background:#e8f5e9;border:1px solid #a5d6a7"></span> ≤ 14 days</span>
   <span class="legend-item"><span class="swatch" style="background:#fffde7;border:1px solid #ffe082"></span> 15–30 days</span>
   <span class="legend-item"><span class="swatch" style="background:#fff;border:1px solid #ddd"></span> 31+ days</span>
-  &nbsp;·&nbsp;
-  <span class="legend-item"><span class="grp-badge grp-standalone">Standalone</span></span>
-  <span class="legend-item"><span class="grp-badge grp-subpart">Part of group</span> NPPES-reported subpart</span>
-  <span class="legend-item"><span class="grp-badge grp-owner">Group — N locations</span> same owner or shared phone detected</span>
 </div>
 
 <div class="table-wrap">
@@ -184,7 +167,6 @@ html = f"""<!DOCTYPE html>
       <th data-col="state">ST</th>
       <th data-col="taxonomy_description">Facility Type</th>
       <th data-col="authorized_official">Contact</th>
-      <th data-col="group_indicator">Standalone / Group</th>
       <th data-col="enumeration_date">Enrolled</th>
       <th data-col="days_since_enrollment">Days Ago</th>
       <th data-col="npi">NPI</th>
@@ -248,21 +230,13 @@ function render(){{
   const selType =document.getElementById("selType").value;
   const selState=document.getElementById("selState").value;
   const selRec  =parseInt(document.getElementById("selRecency").value)||0;
-  const selGrp  =document.getElementById("selGroup").value;
   const numCols =["days_since_enrollment"];
 
-  let rows=DATA.filter(r=>{{
-    const gi=r.group_indicator||"";
-    const isStandalone=!gi||gi==="Standalone";
-    if(selGrp==="standalone"&&!isStandalone) return false;
-    if(selGrp==="group"&&isStandalone) return false;
-    return (
-      (!search||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search)||(r.parent_org||"").toLowerCase().includes(search))
-      &&(!selType||r.taxonomy_description===selType)
-      &&(!selState||r.state===selState)
-      &&(!selRec||parseInt(r.days_since_enrollment||999)<=selRec)
-    );
-  }});
+  let rows=DATA.filter(r=>
+    (!search||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search))
+    &&(!selType||r.taxonomy_description===selType)
+    &&(!selState||r.state===selState)
+    &&(!selRec||parseInt(r.days_since_enrollment||999)<=selRec));
 
   rows.sort((a,b)=>{{
     let va=a[sortCol]??"",vb=b[sortCol]??"";
@@ -292,7 +266,6 @@ function render(){{
         ${{r.authorized_official?`<div class="contact-name">${{esc(r.authorized_official)}}</div>`:"—"}}
         ${{r.official_title?`<div class="contact-title">${{esc(r.official_title)}}</div>`:""}}
       </td>
-      <td>${{grpBadge(r.group_indicator)}}</td>
       <td style="white-space:nowrap">${{esc(r.enumeration_date)}}</td>
       <td><span class="days-badge ${{daysCls}}">${{days}}</span></td>
       <td><a class="npi-link" href="https://npiregistry.cms.hhs.gov/search?number=${{esc(r.npi)}}" target="_blank" rel="noopener">${{esc(r.npi)}}</a></td>`;
@@ -314,14 +287,10 @@ function exportCsv(){{
   const selState=document.getElementById("selState").value;
   const selRec  =parseInt(document.getElementById("selRecency").value)||0;
   const selGrp  =document.getElementById("selGroup").value;
-  let rows=DATA.filter(r=>{{
-    const gi=r.group_indicator||"";
-    const isStandalone=!gi||gi==="Standalone";
-    if(selGrp==="standalone"&&!isStandalone) return false;
-    if(selGrp==="group"&&isStandalone) return false;
-    return(!search||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search)||(r.parent_org||"").toLowerCase().includes(search))&&(!selType||r.taxonomy_description===selType)&&(!selState||r.state===selState)&&(!selRec||parseInt(r.days_since_enrollment||999)<=selRec);
-  }});
-  const cols=["organization_name","practice_address","city","state","zip","phone","authorized_official","official_title","group_indicator","parent_org","taxonomy_description","enumeration_date","days_since_enrollment","npi"];
+  let rows=DATA.filter(r=>
+    (!search||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search))
+    &&(!selType||r.taxonomy_description===selType)&&(!selState||r.state===selState)&&(!selRec||parseInt(r.days_since_enrollment||999)<=selRec));
+  const cols=["organization_name","practice_address","city","state","zip","phone","authorized_official","official_title","taxonomy_description","enumeration_date","days_since_enrollment","npi"];
   const csvRows=rows.map(r=>cols.map(c=>{{const v=String(r[c]??"");return v.includes(",")||v.includes('"')?`"${{v.replace(/"/g,'""')}}"`:v;}}).join(","));
   const blob=new Blob([cols.join(",")+"\\n"+csvRows.join("\\n")],{{type:"text/csv"}});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="facility_leads_{today}.csv";a.click();
