@@ -104,143 +104,99 @@ result = subprocess.run(
 
 print("-" * 60)
 
-if result.returncode != 0:
-    print(f"\n⚠️  fetch_osha.py exited with code {result.returncode}. Aborting update.")
-    sys.exit(result.returncode)
+osha_ok = (result.returncode == 0 and os.path.exists(FRESH_OUTPUT))
 
-if not os.path.exists(FRESH_OUTPUT):
-    print(f"\n⚠️  {FRESH_OUTPUT} was not produced. Aborting update.")
-    sys.exit(1)
+if not osha_ok:
+    print(f"\n⚠️  fetch_osha.py failed (exit {result.returncode}) — "
+          f"skipping OSHA steps 3-7, continuing to CMS and New Facilities.")
 
+if osha_ok:
+    # ─────────────────────────────────────────────────────────────────────────
+    # STEP 3 — Apply priority_tier + facility-level deduplication to fresh output
+    # ─────────────────────────────────────────────────────────────────────────
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STEP 3 — Apply priority_tier + facility-level deduplication to fresh output
-#
-# Reproduces the same logic run manually after the first fetch:
-#   - Assign priority_tier from NAICS prefix
-#   - Count total_violations per facility (estab_name + site_address)
-#   - Keep one row per facility: the row with the highest current_penalty
-#   - Sort by priority_tier asc, days_since_citation asc
-# ─────────────────────────────────────────────────────────────────────────────
+    print("\nSTEP 3 — Enriching fresh data with priority_tier and deduplicating by facility")
 
-print("\nSTEP 3 — Enriching fresh data with priority_tier and deduplicating by facility")
+    fresh_df = pd.read_csv(FRESH_OUTPUT, dtype=str)
+    fresh_df["current_penalty"]     = pd.to_numeric(fresh_df["current_penalty"],     errors="coerce").fillna(0)
+    fresh_df["days_since_citation"] = pd.to_numeric(fresh_df["days_since_citation"], errors="coerce")
+    fresh_df["priority_tier"]       = fresh_df["naics_code"].apply(get_tier)
 
-fresh_df = pd.read_csv(FRESH_OUTPUT, dtype=str)
+    viol_counts = (
+        fresh_df.groupby(["estab_name", "site_address"]).size().reset_index(name="total_violations")
+    )
+    fresh_sorted  = fresh_df.sort_values("current_penalty", ascending=False)
+    fresh_deduped = fresh_sorted.drop_duplicates(subset=["estab_name", "site_address"], keep="first").copy()
+    fresh_final   = fresh_deduped.merge(viol_counts, on=["estab_name", "site_address"], how="left")
+    fresh_final   = fresh_final.sort_values(["priority_tier", "days_since_citation"], ascending=[True, True]).reset_index(drop=True)
+    print(f"  Fresh records (after facility dedup): {len(fresh_final):,}")
 
-# Numeric conversions for sorting / aggregation
-fresh_df["current_penalty"]    = pd.to_numeric(fresh_df["current_penalty"],    errors="coerce").fillna(0)
-fresh_df["days_since_citation"] = pd.to_numeric(fresh_df["days_since_citation"], errors="coerce")
+    # ─────────────────────────────────────────────────────────────────────────
+    # STEP 4 — Load existing healthcare_violations_final.csv
+    # ─────────────────────────────────────────────────────────────────────────
 
-# Assign tier
-fresh_df["priority_tier"] = fresh_df["naics_code"].apply(get_tier)
+    print("\nSTEP 4 — Loading existing final file")
 
-# Count violations per facility before collapsing
-viol_counts = (
-    fresh_df
-    .groupby(["estab_name", "site_address"])
-    .size()
-    .reset_index(name="total_violations")
-)
+    if os.path.exists(FINAL_OUTPUT):
+        existing_df = pd.read_csv(FINAL_OUTPUT, dtype=str)
+        existing_df["current_penalty"]     = pd.to_numeric(existing_df["current_penalty"],     errors="coerce").fillna(0)
+        existing_df["days_since_citation"] = pd.to_numeric(existing_df["days_since_citation"], errors="coerce")
+        print(f"  Existing records: {len(existing_df):,}")
+    else:
+        existing_df = pd.DataFrame(columns=fresh_final.columns)
+        print("  No existing file found — will create from scratch")
 
-# Keep the highest-penalty row per facility
-fresh_sorted = fresh_df.sort_values("current_penalty", ascending=False)
-fresh_deduped = fresh_sorted.drop_duplicates(
-    subset=["estab_name", "site_address"], keep="first"
-).copy()
+    # ─────────────────────────────────────────────────────────────────────────
+    # STEP 5 — Identify new vs duplicate records
+    # ─────────────────────────────────────────────────────────────────────────
 
-# Merge violation counts back in
-fresh_final = fresh_deduped.merge(viol_counts, on=["estab_name", "site_address"], how="left")
+    print("\nSTEP 5 — Identifying new vs duplicate records")
 
-# Sort
-fresh_final = fresh_final.sort_values(
-    ["priority_tier", "days_since_citation"], ascending=[True, True]
-).reset_index(drop=True)
+    def make_key_set(df):
+        keys = set()
+        for _, row in df.iterrows():
+            key = tuple(str(row.get(col, "") or "").strip().lower() for col in DEDUP_KEY)
+            keys.add(key)
+        return keys
 
-print(f"  Fresh records (after facility dedup): {len(fresh_final):,}")
+    existing_keys = make_key_set(existing_df)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# STEP 4 — Load existing healthcare_violations_final.csv (if it exists)
-# ─────────────────────────────────────────────────────────────────────────────
-
-print("\nSTEP 4 — Loading existing final file")
-
-if os.path.exists(FINAL_OUTPUT):
-    existing_df = pd.read_csv(FINAL_OUTPUT, dtype=str)
-    existing_df["current_penalty"]    = pd.to_numeric(existing_df["current_penalty"],    errors="coerce").fillna(0)
-    existing_df["days_since_citation"] = pd.to_numeric(existing_df["days_since_citation"], errors="coerce")
-    print(f"  Existing records: {len(existing_df):,}")
-else:
-    # First run — no existing file yet
-    existing_df = pd.DataFrame(columns=fresh_final.columns)
-    print("  No existing file found — will create from scratch")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# STEP 5 — Identify new records by comparing on the 4-column dedup key
-#
-# Build a set of tuples from existing records, then filter fresh_final to only
-# rows whose key tuple is NOT already in that set.
-# ─────────────────────────────────────────────────────────────────────────────
-
-print("\nSTEP 5 — Identifying new vs duplicate records")
-
-def make_key_set(df):
-    """Return a frozenset of (estab_name, site_address, issuance_date, standard)
-    tuples from df, normalised to lowercase stripped strings."""
-    keys = set()
-    for _, row in df.iterrows():
+    def is_new(row):
         key = tuple(str(row.get(col, "") or "").strip().lower() for col in DEDUP_KEY)
-        keys.add(key)
-    return keys
+        return key not in existing_keys
 
-existing_keys = make_key_set(existing_df)
+    mask_new        = fresh_final.apply(is_new, axis=1)
+    new_records_df  = fresh_final[mask_new].copy()
+    dupe_records_df = fresh_final[~mask_new].copy()
+    print(f"  New records:        {len(new_records_df):,}")
+    print(f"  Duplicates skipped: {len(dupe_records_df):,}")
 
-def is_new(row):
-    key = tuple(str(row.get(col, "") or "").strip().lower() for col in DEDUP_KEY)
-    return key not in existing_keys
+    # ─────────────────────────────────────────────────────────────────────────
+    # STEP 6 — Combine, re-sort, and save
+    # ─────────────────────────────────────────────────────────────────────────
 
-mask_new = fresh_final.apply(is_new, axis=1)
-new_records_df  = fresh_final[mask_new].copy()
-dupe_records_df = fresh_final[~mask_new].copy()
+    print("\nSTEP 6 — Rebuilding and saving healthcare_violations_final.csv")
 
-print(f"  New records:        {len(new_records_df):,}")
-print(f"  Duplicates skipped: {len(dupe_records_df):,}")
+    combined_df = pd.concat([existing_df, new_records_df], ignore_index=True)
+    combined_df["priority_tier"]       = pd.to_numeric(combined_df["priority_tier"],       errors="coerce")
+    combined_df["days_since_citation"] = pd.to_numeric(combined_df["days_since_citation"], errors="coerce")
+    combined_df = combined_df.sort_values(["priority_tier", "days_since_citation"], ascending=[True, True]).reset_index(drop=True)
+    combined_df.to_csv(FINAL_OUTPUT, index=False)
+    print(f"  Saved to {FINAL_OUTPUT}")
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # STEP 7 — OSHA summary
+    # ─────────────────────────────────────────────────────────────────────────
 
-# ─────────────────────────────────────────────────────────────────────────────
-# STEP 6 — Combine existing + new, re-sort, and save
-# ─────────────────────────────────────────────────────────────────────────────
-
-print("\nSTEP 6 — Rebuilding and saving healthcare_violations_final.csv")
-
-combined_df = pd.concat([existing_df, new_records_df], ignore_index=True)
-
-# Re-sort the combined dataset
-combined_df["priority_tier"]       = pd.to_numeric(combined_df["priority_tier"],       errors="coerce")
-combined_df["days_since_citation"] = pd.to_numeric(combined_df["days_since_citation"], errors="coerce")
-
-combined_df = combined_df.sort_values(
-    ["priority_tier", "days_since_citation"], ascending=[True, True]
-).reset_index(drop=True)
-
-combined_df.to_csv(FINAL_OUTPUT, index=False)
-print(f"  Saved to {FINAL_OUTPUT}")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# STEP 7 — Print summary
-# ─────────────────────────────────────────────────────────────────────────────
-
-print()
-print("=" * 60)
-print("OSHA SUMMARY")
-print("=" * 60)
-print(f"  New records added:        {len(new_records_df):>6,}")
-print(f"  Duplicates skipped:       {len(dupe_records_df):>6,}")
-print(f"  Total records in file:    {len(combined_df):>6,}")
-print(f"  Output:                   {FINAL_OUTPUT}")
-print("=" * 60)
+    print()
+    print("=" * 60)
+    print("OSHA SUMMARY")
+    print("=" * 60)
+    print(f"  New records added:        {len(new_records_df):>6,}")
+    print(f"  Duplicates skipped:       {len(dupe_records_df):>6,}")
+    print(f"  Total records in file:    {len(combined_df):>6,}")
+    print(f"  Output:                   {FINAL_OUTPUT}")
+    print("=" * 60)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -338,3 +294,11 @@ else:
     print(f"    Partial coverage:      {n_partial:>6,}")
     print(f"  Output:                 {NF_OUTPUT}")
     print("=" * 60)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Exit with code 1 if OSHA failed (so run_weekly.sh log shows it clearly),
+# but CMS and NF have already been updated above.
+# ─────────────────────────────────────────────────────────────────────────────
+if not osha_ok:
+    print("\n⚠️  Exiting with code 1 — OSHA failed, but CMS and NF were updated.")
+    sys.exit(1)

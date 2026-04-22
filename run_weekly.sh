@@ -42,8 +42,8 @@ python3 "$SCRIPT_DIR/update.py" 2>&1 | tee -a "$LOG_FILE"
 # ── Capture the exit code from update.py (not from tee) ──
 EXIT_CODE="${PIPESTATUS[0]}"
 
-# ── If update succeeded, regenerate index.html and push to GitHub ──
-if [ "$EXIT_CODE" -eq 0 ]; then
+# ── Always regenerate and push — CMS/NF update even when OSHA fails ──
+if true; then
   {
     echo ""
     echo "────────────────────────────────────────────────────────────"

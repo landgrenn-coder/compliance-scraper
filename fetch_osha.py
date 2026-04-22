@@ -90,11 +90,18 @@ GO_MODE   = "--go"   in sys.argv
 
 def fetch_with_retry(url, params):
     """
-    GET request with exponential backoff on 429, 502, 503.
-    Any other error status raises immediately.
+    GET request with exponential backoff on connection errors AND bad status codes.
+    Retries on: TCP timeouts, connection resets, 429, 500, 502, 503, 504.
     """
     for attempt in range(MAX_RETRIES):
-        response = requests.get(url, params=params, timeout=60)
+        try:
+            response = requests.get(url, params=params, timeout=60)
+        except requests.exceptions.RequestException as e:
+            wait = RETRY_BACKOFF_BASE * (2 ** attempt)
+            print(f"  Connection error ({type(e).__name__}) — waiting {wait}s "
+                  f"before retry {attempt + 1}/{MAX_RETRIES}...")
+            time.sleep(wait)
+            continue
         if response.status_code in (429, 500, 502, 503, 504):
             wait = RETRY_BACKOFF_BASE * (2 ** attempt)
             print(f"  HTTP {response.status_code} — waiting {wait}s "
