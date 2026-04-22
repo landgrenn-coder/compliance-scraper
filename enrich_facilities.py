@@ -72,14 +72,26 @@ df["organizational_subpart"]  = subparts
 df["parent_org"]          = parents
 
 # ── Within-dataset group detection ────────────────────────────────────────────
-# Count how many records share the same authorized official (non-empty).
-# Same official across multiple NPIs = same owner operating multiple locations.
+# Signal 1: same authorized official across multiple NPIs → same owner
+# Signal 2: same phone number across multiple NPIs → same entity / central line
+# Phone is a stronger same-entity signal; official is a broader ownership signal.
 official_counts = Counter(o for o in df["authorized_official"] if o.strip())
+phone_counts    = Counter(p for p in df["phone"] if p.strip())
+
+# For phone groups, capture all org names sharing that phone so we can show them
+from collections import defaultdict
+phone_to_orgs = defaultdict(list)
+for _, r in df.iterrows():
+    p = str(r.get("phone","")).strip()
+    n = str(r.get("organization_name","")).strip()
+    if p:
+        phone_to_orgs[p].append(n)
 
 def group_indicator(row):
     subpart    = str(row.get("organizational_subpart", "")).strip().upper()
     parent     = str(row.get("parent_org", "")).strip()
     official   = str(row.get("authorized_official", "")).strip()
+    phone      = str(row.get("phone", "")).strip()
     org_name   = str(row.get("organization_name", "")).strip()
 
     # 1. NPPES explicitly says it's a subpart and names the parent
@@ -90,7 +102,12 @@ def group_indicator(row):
     if subpart == "YES":
         return "Part of group"
 
-    # 3. Same authorized official runs multiple locations in our dataset
+    # 3. Same phone number → same entity or shared corporate line
+    if phone and phone_counts[phone] > 1:
+        n = phone_counts[phone]
+        return f"Group — {n} locations (shared phone)"
+
+    # 4. Same authorized official → same owner, different locations
     if official and official_counts[official] > 1:
         n = official_counts[official]
         return f"Group — {n} locations (same owner)"

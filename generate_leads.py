@@ -172,7 +172,7 @@ html = f"""<!DOCTYPE html>
   &nbsp;·&nbsp;
   <span class="legend-item"><span class="grp-badge grp-standalone">Standalone</span></span>
   <span class="legend-item"><span class="grp-badge grp-subpart">Part of group</span> NPPES-reported subpart</span>
-  <span class="legend-item"><span class="grp-badge grp-owner">Group — N locations</span> same owner detected in dataset</span>
+  <span class="legend-item"><span class="grp-badge grp-owner">Group — N locations</span> same owner or shared phone detected</span>
 </div>
 
 <div class="table-wrap">
@@ -223,6 +223,7 @@ function grpBadge(gi){{
     return `<span class="grp-badge grp-subpart">Part of group</span><div class="parent-name">${{esc(parent)}}</div>`;
   }}
   if(gi==="Part of group") return `<span class="grp-badge grp-subpart">Part of group</span>`;
+  if(gi.includes("shared phone")) return `<span class="grp-badge grp-owner">${{esc(gi)}}</span><div class="parent-name" style="color:#b45309">Same central phone — likely same entity</div>`;
   if(gi.startsWith("Group —")) return `<span class="grp-badge grp-owner">${{esc(gi)}}</span>`;
   return `<span class="grp-badge grp-standalone">${{esc(gi)}}</span>`;
 }}
