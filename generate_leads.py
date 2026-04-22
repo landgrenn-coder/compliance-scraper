@@ -1,14 +1,8 @@
 """
 generate_leads.py — Builds the standalone new-facility leads site (leads.html).
-
-Called by run_weekly.sh after fetch_new_facilities.py completes.
-Can also be run manually:  python3 generate_leads.py
 """
-
-import json
-import os
+import json, os
 from datetime import date
-
 import pandas as pd
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,17 +12,18 @@ OUT_HTML   = os.path.join(SCRIPT_DIR, "leads.html")
 print("generate_leads.py — building leads.html")
 
 if not os.path.exists(NF_CSV):
-    print(f"  ERROR: {NF_CSV} not found")
-    raise SystemExit(1)
+    print(f"  ERROR: {NF_CSV} not found"); raise SystemExit(1)
 
 df = pd.read_csv(NF_CSV, dtype=str)
-records = df.fillna("").to_dict("records")
-print(f"  Records loaded: {len(records):,}")
-
-nf_json  = json.dumps(records, ensure_ascii=False)
+records  = df.fillna("").to_dict("records")
 today    = str(date.today())
 n_total  = len(records)
 n_fresh  = sum(1 for r in records if int(r.get("days_since_enrollment") or 99) <= 14)
+n_standalone = sum(1 for r in records if r.get("group_indicator","") == "Standalone")
+n_group      = n_total - n_standalone
+print(f"  Records: {n_total:,}  fresh: {n_fresh:,}  standalone: {n_standalone:,}  group: {n_group:,}")
+
+nf_json = json.dumps(records, ensure_ascii=False)
 
 html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -41,22 +36,23 @@ html = f"""<!DOCTYPE html>
     body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:13px;background:#f0f2f6;color:#1a1a2e}}
 
     header{{background:#1a1a2e;color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}}
-    header h1{{font-size:18px;font-weight:700;letter-spacing:.2px}}
+    header h1{{font-size:18px;font-weight:700}}
     header .sub{{font-size:11px;color:#9ba4c0;margin-top:2px}}
-    .export-btn{{padding:7px 16px;background:#4a6cf7;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}}
+    .export-btn{{padding:7px 16px;background:#4a6cf7;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}}
     .export-btn:hover{{background:#3a5ce7}}
 
     .stats{{display:flex;gap:12px;padding:16px 24px;flex-wrap:wrap}}
-    .stat-card{{background:#fff;border-radius:10px;padding:14px 20px;flex:1;min-width:140px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #4a6cf7}}
+    .stat-card{{background:#fff;border-radius:10px;padding:14px 20px;flex:1;min-width:130px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #4a6cf7}}
     .stat-card.green{{border-left-color:#2e7d32}}
     .stat-card.orange{{border-left-color:#e65100}}
+    .stat-card.purple{{border-left-color:#6a1b9a}}
     .stat-card .val{{font-size:26px;font-weight:700;line-height:1.1}}
     .stat-card .lbl{{font-size:11px;color:#666;margin-top:3px}}
 
     .controls{{background:#fff;border-bottom:1px solid #dde2ec;padding:10px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.06)}}
     .control-group{{display:flex;align-items:center;gap:5px}}
     .controls label{{font-size:11px;font-weight:600;color:#555;white-space:nowrap}}
-    input[type=text]{{padding:6px 10px;border:1px solid #ccd0da;border-radius:6px;font-size:12px;width:200px;outline:none}}
+    input[type=text]{{padding:6px 10px;border:1px solid #ccd0da;border-radius:6px;font-size:12px;width:190px;outline:none}}
     input[type=text]:focus{{border-color:#4a6cf7}}
     select{{padding:6px 8px;border:1px solid #ccd0da;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;outline:none}}
     select:focus{{border-color:#4a6cf7}}
@@ -73,10 +69,9 @@ html = f"""<!DOCTYPE html>
     tbody tr:last-child td{{border-bottom:none}}
     tbody tr:hover{{filter:brightness(0.97)}}
 
-    /* Recency row coloring */
-    tr.fresh  {{background:#e8f5e9}}   /* ≤14 days  */
-    tr.recent {{background:#fffde7}}   /* 15–30 days */
-    tr.older  {{background:#fff}}      /* 31+ days   */
+    tr.fresh  {{background:#e8f5e9}}
+    tr.recent {{background:#fffde7}}
+    tr.older  {{background:#fff}}
 
     .org-name{{font-weight:600;color:#1a1a2e;line-height:1.3}}
     .addr{{font-size:11px;color:#666;margin-top:2px;line-height:1.4}}
@@ -85,6 +80,7 @@ html = f"""<!DOCTYPE html>
     .contact-name{{font-weight:500}}
     .contact-title{{font-size:11px;color:#888}}
 
+    /* Facility type badges */
     .badge{{display:inline-block;padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}}
     .badge.home-health{{background:#e3f2fd;color:#0d47a1}}
     .badge.skilled-nursing{{background:#fce4ec;color:#880e4f}}
@@ -96,6 +92,13 @@ html = f"""<!DOCTYPE html>
     .badge.hospital{{background:#e8eaf6;color:#1a237e}}
     .badge.default{{background:#f5f5f5;color:#333}}
 
+    /* Group indicator badges */
+    .grp-badge{{display:inline-block;padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}}
+    .grp-standalone{{background:#e8f5e9;color:#1b5e20}}
+    .grp-subpart{{background:#fce4ec;color:#880e4f}}
+    .grp-owner{{background:#fff3e0;color:#e65100}}
+    .parent-name{{font-size:10px;color:#666;margin-top:2px;font-style:italic;max-width:220px;white-space:normal;line-height:1.3}}
+
     .days-badge{{display:inline-block;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700;text-align:center}}
     .days-fresh {{background:#c8e6c9;color:#1b5e20}}
     .days-recent{{background:#fff9c4;color:#f57f17}}
@@ -104,9 +107,7 @@ html = f"""<!DOCTYPE html>
     .partial-flag{{font-size:10px;color:#e65100;font-weight:600}}
     .npi-link{{font-family:monospace;font-size:11px;color:#4a6cf7;text-decoration:none}}
     .npi-link:hover{{text-decoration:underline}}
-
     .empty-msg{{text-align:center;padding:48px;color:#999;font-size:14px;display:none}}
-
     .legend{{padding:6px 24px 12px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#555;align-items:center}}
     .legend-item{{display:flex;align-items:center;gap:5px}}
     .swatch{{width:11px;height:11px;border-radius:2px;display:inline-block}}
@@ -131,6 +132,10 @@ html = f"""<!DOCTYPE html>
     <div class="val" id="statFresh">{n_fresh:,}</div>
     <div class="lbl">New in Last 14 Days</div>
   </div>
+  <div class="stat-card purple">
+    <div class="val" id="statStandalone">{n_standalone:,}</div>
+    <div class="lbl">Standalone</div>
+  </div>
   <div class="stat-card orange">
     <div class="val" id="statShowing">—</div>
     <div class="lbl">Showing (filtered)</div>
@@ -138,7 +143,7 @@ html = f"""<!DOCTYPE html>
 </div>
 
 <div class="controls">
-  <div class="control-group"><label>🔍</label><input type="text" id="search" placeholder="Search organization or city…" oninput="render()"/></div>
+  <div class="control-group"><label>🔍</label><input type="text" id="search" placeholder="Search org, city, parent…" oninput="render()"/></div>
   <div class="control-group"><label for="selType">Type</label><select id="selType" onchange="render()"><option value="">All Types</option></select></div>
   <div class="control-group"><label for="selState">State</label><select id="selState" onchange="render()"><option value="">All States</option></select></div>
   <div class="control-group"><label for="selRecency">Recency</label>
@@ -149,11 +154,11 @@ html = f"""<!DOCTYPE html>
       <option value="60">≤ 60 days</option>
     </select>
   </div>
-  <div class="control-group"><label for="selCoverage">Coverage</label>
-    <select id="selCoverage" onchange="render()">
+  <div class="control-group"><label for="selGroup">Group</label>
+    <select id="selGroup" onchange="render()">
       <option value="">All</option>
-      <option value="Yes">Complete</option>
-      <option value="Partial">Partial</option>
+      <option value="standalone">Standalone only</option>
+      <option value="group">Group / Subpart only</option>
     </select>
   </div>
   <span class="row-count" id="rowCount"></span>
@@ -161,9 +166,13 @@ html = f"""<!DOCTYPE html>
 
 <div class="legend">
   <span style="font-weight:600;color:#333">Row color:</span>
-  <span class="legend-item"><span class="swatch" style="background:#e8f5e9;border:1px solid #a5d6a7"></span> ≤ 14 days (fresh)</span>
+  <span class="legend-item"><span class="swatch" style="background:#e8f5e9;border:1px solid #a5d6a7"></span> ≤ 14 days</span>
   <span class="legend-item"><span class="swatch" style="background:#fffde7;border:1px solid #ffe082"></span> 15–30 days</span>
   <span class="legend-item"><span class="swatch" style="background:#fff;border:1px solid #ddd"></span> 31+ days</span>
+  &nbsp;·&nbsp;
+  <span class="legend-item"><span class="grp-badge grp-standalone">Standalone</span></span>
+  <span class="legend-item"><span class="grp-badge grp-subpart">Part of group</span> NPPES-reported subpart</span>
+  <span class="legend-item"><span class="grp-badge grp-owner">Group — N locations</span> same owner detected in dataset</span>
 </div>
 
 <div class="table-wrap">
@@ -175,9 +184,9 @@ html = f"""<!DOCTYPE html>
       <th data-col="state">ST</th>
       <th data-col="taxonomy_description">Facility Type</th>
       <th data-col="authorized_official">Contact</th>
+      <th data-col="group_indicator">Standalone / Group</th>
       <th data-col="enumeration_date">Enrolled</th>
       <th data-col="days_since_enrollment">Days Ago</th>
-      <th data-col="data_complete">Coverage</th>
       <th data-col="npi">NPI</th>
     </tr></thead>
     <tbody id="leadsBody"></tbody>
@@ -189,19 +198,15 @@ html = f"""<!DOCTYPE html>
 const DATA = {nf_json};
 
 const TYPE_BADGE = {{
-  "Home Health":                   "home-health",
-  "Home Health — Supports":        "home-health",
-  "Skilled Nursing Facility":      "skilled-nursing",
-  "Hospice — Inpatient":           "skilled-nursing",
-  "Intermediate Care Facility":    "skilled-nursing",
-  "Assisted Living Facility":      "assisted-living",
-  "Clinical Medical Laboratory":   "clinical-lab",
-  "Urgent Care Center":            "urgent-care",
-  "Ambulatory Surgery Center":     "asc",
-  "Dialysis / ESRD Treatment Facility": "esrd",
-  "General Acute Care Hospital":   "hospital",
-  "General Acute Care Hospital — Women's": "hospital",
-  "Outpatient Clinic":             "default",
+  "Home Health":"home-health","Home Health — Supports":"home-health",
+  "Skilled Nursing Facility":"skilled-nursing","Hospice — Inpatient":"skilled-nursing","Intermediate Care Facility":"skilled-nursing",
+  "Assisted Living Facility":"assisted-living",
+  "Clinical Medical Laboratory":"clinical-lab",
+  "Urgent Care Center":"urgent-care",
+  "Ambulatory Surgery Center":"asc",
+  "Dialysis / ESRD Treatment Facility":"esrd",
+  "General Acute Care Hospital":"hospital","General Acute Care Hospital — Women's":"hospital",
+  "Outpatient Clinic":"default",
 }};
 
 function esc(s){{return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}}
@@ -211,42 +216,52 @@ function fmtPhone(p){{
   if(d.length===11&&d[0]==="1") return `(${{d.slice(1,4)}}) ${{d.slice(4,7)}}-${{d.slice(7)}}`;
   return p||"";
 }}
+function grpBadge(gi){{
+  if(!gi||gi==="Standalone") return `<span class="grp-badge grp-standalone">Standalone</span>`;
+  if(gi.startsWith("Part of group:")){{
+    const parent=gi.slice("Part of group:".length).trim();
+    return `<span class="grp-badge grp-subpart">Part of group</span><div class="parent-name">${{esc(parent)}}</div>`;
+  }}
+  if(gi==="Part of group") return `<span class="grp-badge grp-subpart">Part of group</span>`;
+  if(gi.startsWith("Group —")) return `<span class="grp-badge grp-owner">${{esc(gi)}}</span>`;
+  return `<span class="grp-badge grp-standalone">${{esc(gi)}}</span>`;
+}}
 
 let sortCol="enumeration_date", sortAsc=false;
 
 (function init(){{
-  const typeEl=document.getElementById("selType");
-  const stateEl=document.getElementById("selState");
-  [...new Set(DATA.map(r=>r.taxonomy_description))].sort().forEach(t=>{{
-    const o=document.createElement("option");o.value=o.textContent=t;typeEl.appendChild(o);
-  }});
-  [...new Set(DATA.map(r=>r.state))].sort().forEach(s=>{{
-    const o=document.createElement("option");o.value=o.textContent=s;stateEl.appendChild(o);
-  }});
+  const typeEl=document.getElementById("selType"), stateEl=document.getElementById("selState");
+  [...new Set(DATA.map(r=>r.taxonomy_description))].sort().forEach(t=>{{const o=document.createElement("option");o.value=o.textContent=t;typeEl.appendChild(o);}});
+  [...new Set(DATA.map(r=>r.state))].sort().forEach(s=>{{const o=document.createElement("option");o.value=o.textContent=s;stateEl.appendChild(o);}});
 }})();
 
 document.querySelectorAll("th[data-col]").forEach(th=>{{
   th.addEventListener("click",()=>{{
-    if(sortCol===th.dataset.col) sortAsc=!sortAsc;
-    else{{sortCol=th.dataset.col;sortAsc=true;}}
+    if(sortCol===th.dataset.col) sortAsc=!sortAsc; else{{sortCol=th.dataset.col;sortAsc=true;}}
     render();
   }});
 }});
 
 function render(){{
-  const search   =document.getElementById("search").value.toLowerCase().trim();
-  const selType  =document.getElementById("selType").value;
-  const selState =document.getElementById("selState").value;
-  const selRec   =parseInt(document.getElementById("selRecency").value)||0;
-  const selCov   =document.getElementById("selCoverage").value;
-  const numCols  =["days_since_enrollment"];
+  const search  =document.getElementById("search").value.toLowerCase().trim();
+  const selType =document.getElementById("selType").value;
+  const selState=document.getElementById("selState").value;
+  const selRec  =parseInt(document.getElementById("selRecency").value)||0;
+  const selGrp  =document.getElementById("selGroup").value;
+  const numCols =["days_since_enrollment"];
 
-  let rows=DATA.filter(r=>
-    (!search  ||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search))
-    &&(!selType ||r.taxonomy_description===selType)
-    &&(!selState||r.state===selState)
-    &&(!selRec  ||parseInt(r.days_since_enrollment||999)<=selRec)
-    &&(!selCov  ||r.data_complete===selCov));
+  let rows=DATA.filter(r=>{{
+    const gi=r.group_indicator||"";
+    const isStandalone=!gi||gi==="Standalone";
+    if(selGrp==="standalone"&&!isStandalone) return false;
+    if(selGrp==="group"&&isStandalone) return false;
+    return (
+      (!search||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search)||(r.parent_org||"").toLowerCase().includes(search))
+      &&(!selType||r.taxonomy_description===selType)
+      &&(!selState||r.state===selState)
+      &&(!selRec||parseInt(r.days_since_enrollment||999)<=selRec)
+    );
+  }});
 
   rows.sort((a,b)=>{{
     let va=a[sortCol]??"",vb=b[sortCol]??"";
@@ -260,10 +275,8 @@ function render(){{
     const days=parseInt(r.days_since_enrollment||99);
     const rowCls=days<=14?"fresh":days<=30?"recent":"older";
     const daysCls=days<=14?"days-fresh":days<=30?"days-recent":"days-old";
-    const badgeCls=TYPE_BADGE[r.taxonomy_description]||"default";
     const phone=fmtPhone(r.phone);
     const phoneHref=phone?`tel:${{(r.phone||"").replace(/\\D/g,"")}}`:"";
-    const isPartial=r.data_complete==="Partial";
     const tr=document.createElement("tr");tr.className=rowCls;
     tr.innerHTML=`
       <td>
@@ -273,14 +286,14 @@ function render(){{
       <td>${{phone?`<a class="phone-link" href="${{phoneHref}}">${{esc(phone)}}</a>`:"—"}}</td>
       <td>${{esc(r.city)}}</td>
       <td>${{esc(r.state)}}</td>
-      <td><span class="badge ${{badgeCls}}">${{esc(r.taxonomy_description)}}</span></td>
+      <td><span class="badge ${{TYPE_BADGE[r.taxonomy_description]||"default"}}">${{esc(r.taxonomy_description)}}</span></td>
       <td>
         ${{r.authorized_official?`<div class="contact-name">${{esc(r.authorized_official)}}</div>`:"—"}}
         ${{r.official_title?`<div class="contact-title">${{esc(r.official_title)}}</div>`:""}}
       </td>
+      <td>${{grpBadge(r.group_indicator)}}</td>
       <td style="white-space:nowrap">${{esc(r.enumeration_date)}}</td>
       <td><span class="days-badge ${{daysCls}}">${{days}}</span></td>
-      <td>${{isPartial?'<span class="partial-flag">⚠ Partial</span>':'<span style="color:#2e7d32;font-weight:600;font-size:11px">✓</span>'}}</td>
       <td><a class="npi-link" href="https://npiregistry.cms.hhs.gov/search?number=${{esc(r.npi)}}" target="_blank" rel="noopener">${{esc(r.npi)}}</a></td>`;
     tbody.appendChild(tr);
   }});
@@ -295,21 +308,21 @@ function render(){{
 }}
 
 function exportCsv(){{
-  const search   =document.getElementById("search").value.toLowerCase().trim();
-  const selType  =document.getElementById("selType").value;
-  const selState =document.getElementById("selState").value;
-  const selRec   =parseInt(document.getElementById("selRecency").value)||0;
-  const selCov   =document.getElementById("selCoverage").value;
-  let rows=DATA.filter(r=>
-    (!search  ||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search))
-    &&(!selType ||r.taxonomy_description===selType)
-    &&(!selState||r.state===selState)
-    &&(!selRec  ||parseInt(r.days_since_enrollment||999)<=selRec)
-    &&(!selCov  ||r.data_complete===selCov));
-  const cols=["organization_name","practice_address","city","state","zip","phone","authorized_official","official_title","taxonomy_description","enumeration_date","days_since_enrollment","data_complete","npi"];
-  const header=cols.join(",");
+  const search  =document.getElementById("search").value.toLowerCase().trim();
+  const selType =document.getElementById("selType").value;
+  const selState=document.getElementById("selState").value;
+  const selRec  =parseInt(document.getElementById("selRecency").value)||0;
+  const selGrp  =document.getElementById("selGroup").value;
+  let rows=DATA.filter(r=>{{
+    const gi=r.group_indicator||"";
+    const isStandalone=!gi||gi==="Standalone";
+    if(selGrp==="standalone"&&!isStandalone) return false;
+    if(selGrp==="group"&&isStandalone) return false;
+    return(!search||(r.organization_name||"").toLowerCase().includes(search)||(r.city||"").toLowerCase().includes(search)||(r.authorized_official||"").toLowerCase().includes(search)||(r.parent_org||"").toLowerCase().includes(search))&&(!selType||r.taxonomy_description===selType)&&(!selState||r.state===selState)&&(!selRec||parseInt(r.days_since_enrollment||999)<=selRec);
+  }});
+  const cols=["organization_name","practice_address","city","state","zip","phone","authorized_official","official_title","group_indicator","parent_org","taxonomy_description","enumeration_date","days_since_enrollment","npi"];
   const csvRows=rows.map(r=>cols.map(c=>{{const v=String(r[c]??"");return v.includes(",")||v.includes('"')?`"${{v.replace(/"/g,'""')}}"`:v;}}).join(","));
-  const blob=new Blob([header+"\\n"+csvRows.join("\\n")],{{type:"text/csv"}});
+  const blob=new Blob([cols.join(",")+"\\n"+csvRows.join("\\n")],{{type:"text/csv"}});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="facility_leads_{today}.csv";a.click();
 }}
 
@@ -320,5 +333,4 @@ render();
 
 with open(OUT_HTML, "w", encoding="utf-8") as f:
     f.write(html)
-
-print(f"  leads.html written — {n_total:,} records, {n_fresh:,} fresh (≤14 days)")
+print(f"  leads.html written — {n_total:,} records")

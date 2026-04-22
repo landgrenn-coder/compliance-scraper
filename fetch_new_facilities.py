@@ -108,20 +108,23 @@ def extract_record(rec, data_complete="Yes"):
     ao_title = basic.get("authorized_official_title_or_position", "").strip()
     ao_name  = f"{ao_first} {ao_last}".strip()
     return {
-        "npi":                   rec.get("number", ""),
-        "organization_name":     basic.get("organization_name", ""),
-        "practice_address":      addr.get("address_1", ""),
-        "city":                  addr.get("city", ""),
-        "state":                 addr.get("state", ""),
-        "zip":                   addr.get("postal_code", "")[:5],
-        "phone":                 addr.get("telephone_number", ""),
-        "authorized_official":   ao_name,
-        "official_title":        ao_title,
-        "taxonomy_code":         tax_code,
-        "taxonomy_description":  CODE_LABELS.get(tax_code, tax_desc),
-        "enumeration_date":      enum_str,
-        "days_since_enrollment": days_ago,
-        "data_complete":         data_complete,
+        "npi":                    rec.get("number", ""),
+        "organization_name":      basic.get("organization_name", ""),
+        "practice_address":       addr.get("address_1", ""),
+        "city":                   addr.get("city", ""),
+        "state":                  addr.get("state", ""),
+        "zip":                    addr.get("postal_code", "")[:5],
+        "phone":                  addr.get("telephone_number", ""),
+        "authorized_official":    ao_name,
+        "official_title":         ao_title,
+        "organizational_subpart": basic.get("organizational_subpart", "").strip().upper(),
+        "parent_org":             basic.get("parent_organization_legal_business_name", "").strip().title(),
+        "group_indicator":        "",   # computed by enrich_facilities.py
+        "taxonomy_code":          tax_code,
+        "taxonomy_description":   CODE_LABELS.get(tax_code, tax_desc),
+        "enumeration_date":       enum_str,
+        "days_since_enrollment":  days_ago,
+        "data_complete":          data_complete,
     }
 
 
