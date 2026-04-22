@@ -261,44 +261,9 @@ else:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# STEP 10 — Run fetch_new_facilities.py to pull newly enrolled facilities
-# ─────────────────────────────────────────────────────────────────────────────
-
-FETCH_NF_SCRIPT = os.path.join(SCRIPT_DIR, "fetch_new_facilities.py")
-NF_OUTPUT       = os.path.join(SCRIPT_DIR, "new_facilities.csv")
-
-print("\nSTEP 10 — Running fetch_new_facilities.py")
-print("-" * 60)
-
-nf_result = subprocess.run(
-    [sys.executable, FETCH_NF_SCRIPT],
-    cwd=SCRIPT_DIR,
-)
-
-print("-" * 60)
-
-if nf_result.returncode != 0:
-    print(f"\n⚠️  fetch_new_facilities.py exited with code {nf_result.returncode}. Skipping.")
-elif not os.path.exists(NF_OUTPUT):
-    print(f"\n⚠️  {NF_OUTPUT} was not produced.")
-else:
-    nf_df = pd.read_csv(NF_OUTPUT, dtype=str)
-    n_yes     = (nf_df.get("data_complete", pd.Series(dtype=str)) == "Yes").sum()
-    n_partial = (nf_df.get("data_complete", pd.Series(dtype=str)) == "Partial").sum()
-    print()
-    print("=" * 60)
-    print("NEW FACILITIES SUMMARY")
-    print("=" * 60)
-    print(f"  Total new facilities:   {len(nf_df):>6,}")
-    print(f"    Complete (Yes):        {n_yes:>6,}")
-    print(f"    Partial coverage:      {n_partial:>6,}")
-    print(f"  Output:                 {NF_OUTPUT}")
-    print("=" * 60)
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Exit with code 1 if OSHA failed (so run_weekly.sh log shows it clearly),
-# but CMS and NF have already been updated above.
+# New Facilities runs on its own Wednesday schedule via run_leads.sh / launchd.
+# Exit with code 1 if OSHA failed so the log reflects it clearly.
 # ─────────────────────────────────────────────────────────────────────────────
 if not osha_ok:
-    print("\n⚠️  Exiting with code 1 — OSHA failed, but CMS and NF were updated.")
+    print("\n⚠️  Exiting with code 1 — OSHA failed, but CMS was updated.")
     sys.exit(1)

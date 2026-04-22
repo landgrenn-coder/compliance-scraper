@@ -64,7 +64,7 @@ if true; then
     } | tee -a "$LOG_FILE"
 
     cd "$SCRIPT_DIR" || exit 1
-    git add index.html leads.html healthcare_violations_final.csv cms_deficiencies.csv new_facilities.csv
+    git add index.html healthcare_violations_final.csv cms_deficiencies.csv
     git diff --cached --quiet || git commit -m "Weekly data refresh — $(timestamp)"
     git push 2>&1 | tee -a "$LOG_FILE"
     PUSH_CODE="${PIPESTATUS[0]}"
