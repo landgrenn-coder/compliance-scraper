@@ -52,6 +52,7 @@ if [ "$EXIT_CODE" -eq 0 ]; then
   } | tee -a "$LOG_FILE"
 
   python3 "$SCRIPT_DIR/generate_html.py" 2>&1 | tee -a "$LOG_FILE"
+  python3 "$SCRIPT_DIR/generate_leads.py" 2>&1 | tee -a "$LOG_FILE"
   GEN_CODE="${PIPESTATUS[0]}"
 
   if [ "$GEN_CODE" -eq 0 ]; then
@@ -63,7 +64,7 @@ if [ "$EXIT_CODE" -eq 0 ]; then
     } | tee -a "$LOG_FILE"
 
     cd "$SCRIPT_DIR" || exit 1
-    git add index.html healthcare_violations_final.csv cms_deficiencies.csv new_facilities.csv
+    git add index.html leads.html healthcare_violations_final.csv cms_deficiencies.csv new_facilities.csv
     git diff --cached --quiet || git commit -m "Weekly data refresh — $(timestamp)"
     git push 2>&1 | tee -a "$LOG_FILE"
     PUSH_CODE="${PIPESTATUS[0]}"
